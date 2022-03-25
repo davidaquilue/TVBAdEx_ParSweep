@@ -1,0 +1,78 @@
+'''Some plotting functions for the Sweep of parameters'''
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+
+def ratio_mat(values_Q_e, values_Q_i):
+    values_Q_e = np.array([values_Q_e,])  # To be able to build the ratmatrix
+    values_Q_i = np.array([values_Q_i,])
+
+
+def psdpeak_mats(values_Q_e, values_Q_i, matrix):
+    matrix = np.flip(matrix, axis=0)  # To have increasing values of Qe in the y axis
+    values_Q_e = np.array([values_Q_e,])  # To be able to build the ratmatrix
+    values_Q_i = np.array([values_Q_i,])
+    # Ratio matrix
+    ratmatrix = np.flip(values_Q_e.T/values_Q_i, axis=0)  # Take into account that values_Q_e/i have to be numpy arrays
+    # Plotting
+    fig, axes = plt.subplots(1,2, figsize=(8,6))
+    img1 = axes[0].imshow(ratmatrix, extent=[-1, 1, -1, 1])
+    axes[0].set_title('Ratio Q_e/Q_i')
+    img2 = axes[1].imshow(matrix, extent=[-1, 1, -1, 1])
+    axes[1].set_title('Maxima of PSD (Hz)')
+    
+    # Labels
+    y_label_list = [str(Qe) for Qe in values_Q_e[0]]
+    x_label_list = [str(Qi) for Qi in values_Q_i[0]]
+    for ax in axes:
+        ax.set_yticks(np.linspace(-(1-1/values_Q_e.size), 1-1/values_Q_e.size, int(values_Q_e.size/2)))
+        ax.set_yticklabels(y_label_list)
+        ax.set_ylabel('Q_e')
+        ax.set_xticks(np.linspace(-(1-1/values_Q_i.size), 1-1/values_Q_i.size, int(values_Q_i.size/2)))
+        ax.set_xticklabels(x_label_list)
+        ax.set_xlabel('Q_i')
+    divider = make_axes_locatable(axes[0])
+    cax1 = divider.append_axes("right", size="5%", pad=0.05)
+    divider = make_axes_locatable(axes[1])
+    cax2 = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(img1, cax=cax1)
+    fig.colorbar(img2, cax=cax2)
+    plt.tight_layout()
+    
+    return fig, axes
+
+
+def minFR_mats(values_Q_e, values_Q_i, matrix):
+    matrix = np.flip(matrix, axis=0)  # To have increasing values of Qe in the y axis
+    values_Q_e = np.array([values_Q_e,])  # To be able to build the ratmatrix
+    values_Q_i = np.array([values_Q_i,])
+    
+    # Ratio matrix
+    ratmatrix = np.flip(values_Q_e.T/values_Q_i, axis=0)  # Take into account that values_Q_e/i have to be numpy arrays
+    # Plotting
+    fig, axes = plt.subplots(1,2, figsize=(8,6))
+    img1 = axes[0].imshow(ratmatrix, extent=[-1, 1, -1, 1])
+    axes[0].set_title('Ratio Q_e/Q_i')
+    img2 = axes[1].imshow(matrix, extent=[-1, 1, -1, 1])
+    axes[1].set_title('Considered FR (Hz)')
+    
+    # Labels
+    y_label_list = [str(Qe) for Qe in values_Q_e[0]]
+    x_label_list = [str(Qi) for Qi in values_Q_i[0]]
+    for ax in axes:
+        ax.set_yticks(np.linspace(-(1-1/values_Q_e.size), 1-1/values_Q_e.size, values_Q_e.size))
+        ax.set_yticklabels(y_label_list)
+        ax.set_ylabel('Q_e')
+        ax.set_xticks(np.linspace(-(1-1/values_Q_i.size), 1-1/values_Q_i.size, values_Q_i.size))
+        ax.set_xticklabels(x_label_list)
+        ax.set_xlabel('Q_i')
+    divider = make_axes_locatable(axes[0])
+    cax1 = divider.append_axes("right", size="5%", pad=0.05)
+    divider = make_axes_locatable(axes[1])
+    cax2 = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(img1, cax=cax1)
+    fig.colorbar(img2, cax=cax2)
+    plt.tight_layout()
+    
+    return fig, axes
+
