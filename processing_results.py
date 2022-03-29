@@ -173,7 +173,7 @@ def metric_for_pairs(params_metric_array, name_metric,
     for id_x, val_x in enumerate(sweep_par_x):
         for id_y, val_y in enumerate(sweep_par_y):
             idx_row_array = (new_array[:, par_x_idx_in_arr] == val_x) & (new_array[:, par_y_idx_in_arr] == val_y)
-            plot_matrix[- (id_y + 1), id_x] = new_array[idx_row_array, -1]
+            plot_matrix[- (id_y + 1), id_x] = new_array[idx_row_array, -1][0]
 
     if do_plot:
         if type(ax) is None or type(fig) is None:
@@ -246,6 +246,7 @@ def plot_multiple_metrics(metrics, results_folder, params_sweep, fixed_params, s
 if __name__ == '__main__':
     results_folder = './results/'
     batches_folder = '/home/master/Desktop/tests_MPI/results_batches/'
+    batches_folder = './results_batches/'
     batch_files(results_folder, batches_folder, batch_size=11, n_cols=41)
     fixed_params = {'a': 0.25, 'b_e': 65, 'T': 30}
     params_sweep = ('E_L_e', 'E_L_i')

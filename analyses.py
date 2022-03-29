@@ -62,13 +62,13 @@ def mean_PLI(FR, do_plot=False):
 # ========================================= UP-STATES ========================================= #
 def detect_UP(train_cut, ratioThreshold=0.4,
               sampling_rate=1., len_state=50.,
-              gauss_width_ratio=10.):
+              gauss_width_ratio=10., min_for_up=0.2):
     """
     detect UP states from time signal
     (population rate or population spikes or cell voltage trace)
     return start and ends of states.
     
-    Written by Trang-Anh Nghiem
+    Written by Trang-Anh Nghiem. Modified with min_for_up by David Aquilue
 
     Parameters
     ----------
@@ -86,6 +86,12 @@ def detect_UP(train_cut, ratioThreshold=0.4,
 
     gauss_width_ratio: float
         Width ratio of the Gaussian Kernel used in the filter for detecting up-states.
+
+    min_for_up: float
+        A value under which there is no up-state. That way, if we have high relative variations
+        near 0 value but the FR is not higher than 0.3 there will be no up-state.
+        However, take into account that this will modify the functioning of the algorithm, possibly
+        underestimating up state duration.
 
     Returns
     -------
@@ -112,7 +118,7 @@ def detect_UP(train_cut, ratioThreshold=0.4,
     thresh = ratioThreshold * np.max(train_filt)
 
     # times at which filtered signal crosses threshold
-    train_shift = np.subtract(train_filt, thresh)
+    train_shift = np.subtract(train_filt, thresh) - min_for_up
     idx = np.where(np.multiply(train_shift[1:], train_shift[:-1]) < 0)[0]
 
     # train of 0 in DOWN state and 1 in UP state
