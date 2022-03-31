@@ -63,7 +63,7 @@ dict_metrics = {'mean_FR_e': 5, 'mean_FR_i': 23, 'std_FR_e': 6, 'std_FR_i': 24,
                 'alpha_rel_p_e': 20, 'beta_rel_p_e': 21, 'gamma_rel_p_e': 22, 'delta_rel_p_i': 36,
                 'theta_rel_p_i': 37, 'alpha_rel_p_i': 38, 'beta_rel_p_i': 39, 'gamma_rel_p_i': 40,
                 'ratio_frmean_dmn_exc': 41, 'ratio_zscore_dmn_exc': 42, 'ratio_frmean_dmn_inh': 43,
-                'ratio_zscore_dmn_inh': 44}
+                'ratio_zscore_dmn_inh': 44, 'ratio_AI_exc': 45}
 
 
 def load_metric_sweeps(name_metric, results_folder, steps=15):
@@ -247,6 +247,7 @@ def plot_multiple_metrics(metrics, results_folder, params_sweep, fixed_params, s
 
 if __name__ == '__main__':
     results_folder = './results/'
+    results_folder = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results/'
     batches_folder = '/home/master/Desktop/tests_MPI/results_batches/'
     batches_folder = './results_batches/'
     n_cols = len(dict_params.keys()) + len(dict_metrics.keys())
@@ -255,7 +256,7 @@ if __name__ == '__main__':
     params_sweep = ('E_L_e', 'E_L_i')
     steps = 2
     metrics = ['mean_FR_e', 'mean_FR_i', 'slope_PSD_e', 'score_PSD_e', 'slope_PSD_i',
-               'score_PSD_i', 'alpha_rel_p_e', 'beta_rel_p_i']
+               'score_PSD_i', 'ratio_zscore_dmn_inh', 'ratio_AI_exc']
     fig = plot_multiple_metrics(metrics, batches_folder, params_sweep, fixed_params, steps)
-    #plt.show()
+    plt.show()
     fig.savefig('test.png')

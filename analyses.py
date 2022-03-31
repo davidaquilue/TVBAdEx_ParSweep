@@ -957,7 +957,6 @@ def ratio_most_active_from_dmn(fr, dmn_regions=None, k=10):
     mean_t_FR = np.mean(fr, axis=0)  # (M, ) of mean FR of each region
 
     k_most_active = np.argpartition(mean_t_FR, -k)[-k:]
-    print(k_most_active)
     count_in_dmn = 0
     for active_region in k_most_active:
         if active_region in dmn_regions:

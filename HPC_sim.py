@@ -20,7 +20,7 @@ size = comm.Get_size()
 # $ mpiexec -n 20 --oversubscribe python3 script.py. 
 # That way maximum rank will be 19 and size will be 20.
 
-steps = 6  # Let's say 15 at the moment.
+steps = 2  # Let's say 15 at the moment.
 S_vals = np.linspace(0, 0.5, steps)
 b_vals = np.linspace(0, 120, steps)
 E_L_e_vals = np.linspace(-80, -60, steps)
