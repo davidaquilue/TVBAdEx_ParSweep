@@ -20,7 +20,7 @@ size = comm.Get_size()
 # $ mpiexec -n 20 --oversubscribe python3 script.py. 
 # That way maximum rank will be 19 and size will be 20.
 
-steps = 2  # Let's say 15 at the moment.
+steps = 6  # Let's say 15 at the moment.
 S_vals = np.linspace(0, 0.5, steps)
 b_vals = np.linspace(0, 120, steps)
 E_L_e_vals = np.linspace(-80, -60, steps)
@@ -83,14 +83,14 @@ for simnum in range(len(Job_proc)):
     parameters.parameter_simulation['path_result'] = file_name
     
     # Set up simulator with new parameters
-    # # simulator = tools.init(parameters.parameter_simulation, parameters.parameter_model,
-    # #                        parameters.parameter_connection_between_region,
-    # #                        parameters.parameter_coupling,
-    # #                        parameters.parameter_integrator,
-    # #                        parameters.parameter_monitor)
-    #
-    # # Run simulations
-    # tools.run_simulation(simulator, run_sim, parameters.parameter_simulation, parameters.parameter_monitor)
+    simulator = tools.init(parameters.parameter_simulation, parameters.parameter_model,
+                           parameters.parameter_connection_between_region,
+                           parameters.parameter_coupling,
+                           parameters.parameter_integrator,
+                           parameters.parameter_monitor)
+
+    # Run simulations
+    tools.run_simulation(simulator, run_sim, parameters.parameter_simulation, parameters.parameter_monitor)
 
     sim_time = time.time()
     print(f'Time of simulation: {sim_time - start_time}s')
@@ -104,7 +104,7 @@ for simnum in range(len(Job_proc)):
     del result
 
     # We can then also delete result to free some space in disk.
-    #remove_results(folder_root + label_sim)  # Delete the folders, get space free as soon as possible
+    remove_results(folder_root + label_sim)  # Delete the folders, get space free as soon as possible
 
     # Start analyzing the results
     store_npy = []  # Empty list that we will convert to array
@@ -124,7 +124,7 @@ for simnum in range(len(Job_proc)):
     
     # Length of Up-Down states
     up_mean_len, down_mean_len = mean_UD_duration(FR_exc, dt=parameters.parameter_integrator['dt'],
-                                                  ratio_threshold=0.4, len_state=50, gauss_width_ratio=10)
+                                                  ratio_threshold=0.3, len_state=20, gauss_width_ratio=10)
     store_npy.append(up_mean_len)
     store_npy.append(down_mean_len)
 
@@ -162,7 +162,7 @@ for simnum in range(len(Job_proc)):
     store_npy.append(mean_FC(FR_inh))
     store_npy.append(mean_PLI(FR_inh))
     up_mean_len, down_mean_len = mean_UD_duration(FR_inh, dt=parameters.parameter_integrator['dt'],
-                                                  ratio_threshold=0.4, len_state=50, gauss_width_ratio=10)
+                                                  ratio_threshold=0.3, len_state=20, gauss_width_ratio=10)
     store_npy.append(up_mean_len)
     store_npy.append(down_mean_len)
     store_npy.append(np.amax(FR_inh))
@@ -181,6 +181,16 @@ for simnum in range(len(Job_proc)):
 
     for band in dict_rel_powers:  # Store results
         store_npy.append(dict_rel_powers[band])
+
+    # ========================================= PREDICTIONS ========================================= #
+    FC_exc = np.corrcoef(FR_exc.T)
+    store_npy.append(ratio_most_active_from_dmn(FR_exc))
+    store_npy.append(ratio_zscore_from_dmn(FC_exc))
+    FC_inh = np.corrcoef(FR_inh.T)
+    store_npy.append(ratio_most_active_from_dmn(FR_inh))
+    store_npy.append(ratio_zscore_from_dmn(FC_inh))
+
+    store_npy.append(count_ratio_AI(FR_exc))  # Still under construction
 
     # ========================================= SAVING RESULTS ========================================= #
     # Finally, save the results.
@@ -244,3 +254,10 @@ for simnum in range(len(Job_proc)):
     # +-----------------------------------+-------------+-------------+-----+
     # | gamma relative power              |          22 |          40 |     |
     # +-----------------------------------+-------------+-------------+-----+
+    # | ratio DMN with mean FR            |          41 |          43 |     |
+    # +-----------------------------------+-------------+-------------+-----+
+    # | ratio DMN with zscore             |          42 |          44 |     |
+    # +-----------------------------------+-------------+-------------+-----+
+    # | counting ratio UD states          |          45 |             |     |
+    # +-----------------------------------+-------------+-------------+-----+
+

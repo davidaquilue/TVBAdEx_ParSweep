@@ -10,6 +10,10 @@ from sklearn.linear_model import LinearRegression
 from numba import njit
 from scipy.integrate import simps
 from matplotlib.pyplot import cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.tri import Triangulation
+import scipy.signal as signal
+from scipy.optimize import curve_fit
 
 
 def remove_results(folder_sim):
@@ -216,7 +220,6 @@ def mean_UD_duration(FR, dt, ratio_threshold=0.3,
     down_mean_len: float
         Average length of up-states throughout the whole simulation, in s.
     """
-    # TODO: Accurately determine the best set of parameters for the TVB adex
 
     N, M = FR.shape
     sampling_rate = 1 / dt
@@ -244,6 +247,7 @@ def mean_UD_duration(FR, dt, ratio_threshold=0.3,
     return up_mean_len, down_mean_len
 
 
+# ========================================= PSD Metrics ========================================= #
 def psd_fmax_ampmax(frq, psd, type_mean='avg_psd', prominence=1, which_peak='both'):
     """ Returns frequency at which PSD peaks and the amplitude of the peak. Makes use of scipy.signal.find_peaks.
 
@@ -431,6 +435,184 @@ def fit_psd_slope(frq, psd, range_fit=(0.1, 1000), type_mean='avg_psd'):
         return 0, 0, 0
 
 
+# ========================================= COUNTING AMOUNT OF UD States ========================================= #
+def gauss(x, mu, sigma, A):
+    return A * np.exp(-(x - mu) ** 2 / 2 / sigma ** 2)
+
+
+def bimodal(x, mu1, sigma1, A1, mu2, sigma2, A2):
+    return gauss(x, mu1, sigma1, A1) + gauss(x, mu2, sigma2, A2)
+
+
+def exponential(x, A, k):
+    return A * np.exp(-k * x)
+
+
+def sing_bi_modal_fit(time_trace, do_plot=False):
+    """This function returns either 0 if U-D or 1 if AI state. Will return 0 as well if broken point.
+    That way we will count the number of U-D states in one simulation by summing all the values.
+
+    When histogram is bimodal: U-D, value 0
+    When histogram is single mode: AI, value 1
+
+    The process this algorithm does is:
+        Tries to fit the histogram of the input time-trace to a Gaussian curve
+        Then tries to fit the histogram of time-trace to a sum of two Guassians
+        If any of the two fits cannot be done, the state will be assigned to the only possible fit
+        If both fits can be done, then the fit with better R2 score on the data is selected as state.
+
+    However, if no fit is possible, then it will return a np.nan value.
+
+    Parameters
+    -------
+    time_trace: ndarray
+        Array containing the FR time trace of a single region.
+
+    do_plot: bool
+        Select if one wants to obtain a plot or not.
+
+    Returns
+    -------
+    val: 0, 1 or np.nan
+        Depending on if the time-trace provided is U-D, AI state or no possible fit was possible to apply.
+    """
+    if np.max(time_trace) > 120:
+        return 0
+    else:
+        range_bins = (0, 100)
+        n_bins = 101
+
+        hist, bins = np.histogram(time_trace, bins=n_bins, range=range_bins)
+        mean_hist = np.mean(hist)
+        width = 0.7 * (bins[1] - bins[0])
+        center = (bins[:-1] + bins[1:]) / 2
+
+        sing_failed = False
+        expected_sing = (10, 1, 5000)
+        try:
+            params_sing, _ = curve_fit(gauss, center, hist, expected_sing)
+        except:
+            sing_failed = True
+        else:
+            params_sing, _ = curve_fit(gauss, center, hist, expected_sing)
+            SS_res = np.sum((hist - gauss(center, *params_sing)) ** 2)
+            SS_tot = np.sum((hist - mean_hist))
+            R_2_sing = 1 - SS_res / SS_tot
+
+        bi_failed = False
+        expected_bi = (4, 1, 5000, 15, 1, 2000)
+        try:
+            params_bi, _ = curve_fit(bimodal, center, hist, expected_bi)
+        except:
+            bi_failed = True
+        else:
+            params_bi, _ = curve_fit(bimodal, center, hist, expected_bi)
+            SS_res = np.sum((hist - bimodal(center, *params_bi)) ** 2)
+            SS_tot = np.sum((hist - mean_hist))
+            R_2_bi = 1 - SS_res / SS_tot
+        x_fit = np.linspace(center[0], center[1], center.size)
+
+        if do_plot:
+            plt.bar(center, hist, align='center', width=width)
+            if not sing_failed:
+                plt.plot(center, gauss(center, *params_sing), color='red', lw=3)
+            if not bi_failed:
+                plt.plot(center, bimodal(center, *params_bi), color='green', lw=3)
+            plt.show()
+            plt.close()
+
+        # Now it's time to handle the results of the fits
+        if bi_failed and sing_failed:
+            # If both of them failed, we try one last resort. Some U-D histogram's look like exponential
+            all_failed = False
+            try:
+                params_exp, _ = curve_fit(exponential, center, hist, (10000, 100))
+            except:
+                # If the fit to the exponential does not work. We return a nan as total failure of fit
+                return np.nan
+            else:
+                return 0  # We have U-D case
+
+        elif bi_failed and not sing_failed:
+            return 1  # Single mode didn't fail, return AI state
+
+        elif sing_failed and not bi_failed:
+            return 0  # Bimodal didn't fail, return U-D state
+
+        else:
+            # If neither of them failed, see which R_2 score is better
+            if R_2_bi > R_2_sing:
+                return 0
+            else:
+                return 1
+
+
+def sing_bi_modal_peaks(time_trace, do_plot=False):
+    """This function returns either 0 if U_D or 1 if AI state. Will return 0 as well if broken point.
+    That way we will count the number of U-D states in one simulation by summing all the values.
+
+    When histogram is bimodal: U-D, value 0
+    When histogram is single mode: AI, value 1
+
+    The process this algorithm does is:
+        Find the peaks in the histogram
+        Take the two peaks with maximum prominence
+        If one of the peaks appears @ less than 5Hz, then UD state
+        Else AI
+
+    Parameters
+    -------
+    time_trace: ndarray
+        Array containing the FR time trace of a single region.
+
+    do_plot: bool
+        Select if one wants to obtain a plot or not.
+
+    Returns
+    -------
+    val: 0, 1
+        Depending on if the time-trace provided is U-D or AI state.
+    """
+    if np.max(time_trace) > 120:
+        return 1
+    else:
+        range_bins = (0, 100)
+        n_bins = 101
+
+        hist, bins = np.histogram(time_trace, bins=n_bins, range=range_bins)
+        mean_hist = np.mean(hist)
+        width = 0.7 * (bins[1] - bins[0])
+        center = (bins[:-1] + bins[1:]) / 2
+        idx_peaks, props = signal.find_peaks(np.concatenate(([min(hist)], hist, [min(hist)])), prominence=100)
+        idx_peaks -= 1
+        if idx_peaks.size > 1:
+            idx_peaks = idx_peaks[np.argpartition(props['prominences'], -2)[-2:]]
+
+        if do_plot:
+            plt.bar(center, hist, align='center', width=width)
+            plt.plot(idx_peaks, hist[idx_peaks], 'r*')
+            plt.show()
+            plt.close()
+
+        if np.min(idx_peaks) <= 5:  # Discuss this value
+            return 0
+        else:
+            return 1
+
+
+def count_ratio_AI(FR, type_alg='peaks', do_plot=False):
+    running_count = 0
+    for fr_idx in range(68):
+        time_trace = FR[:, fr_idx]
+        if type_alg == 'peaks':
+            running_count += sing_bi_modal_peaks(time_trace, do_plot=do_plot)
+        elif type_alg == 'fits':
+            running_count += sing_bi_modal_fit(time_trace, do_plot=do_plot)
+        else:
+            raise ValueError('Select an adequate type_alg. Either peaks or fits')
+    return running_count / 68
+
+
 # ========================================= Plotting ========================================= #
 def PSD(time_s, FR, returnplot=False, ax=None, c=None, lab=None):
     """Function that takes the time and FR of a TVB simulation and returns the psd analysis with the plot
@@ -480,7 +662,7 @@ def PSD(time_s, FR, returnplot=False, ax=None, c=None, lab=None):
         return analysis
 
 
-# ========================================= Power in Bands. First tests ========================================= #
+# ======================================== Power in Bands ======================================== #
 def rel_power_bands(frq, psd, bands=None, do_plot=False):
     """ Returns the relative powers in each band range with the associated plot.
 
@@ -542,6 +724,7 @@ def rel_power_bands(frq, psd, bands=None, do_plot=False):
     return rel_powers
 
 
+# ======================================== DMN and FC ======================================== #
 def corr_dmn(fr, dmn_regions=None):
     """ Returns a data frame containing the statistics of the correlation values between pairs of nodes:
     - Correlations between nodes of the Default Mode Network (DMN)
@@ -577,8 +760,8 @@ def corr_dmn(fr, dmn_regions=None):
     FC = np.corrcoef(fr.T)
 
     for i in range(M):
-        # for j in range(i): # If we want to take only one triangular portion of the matrix.
-        for j in range(M):
+        for j in range(i): # If we want to take only one triangular portion of the matrix.
+        #for j in range(M):
             if i == j:  # Not interested in diagonal
                 continue
             corr = FC[i, j]
@@ -604,7 +787,7 @@ def corr_dmn(fr, dmn_regions=None):
     return data
 
 
-def plot_corr_dmn(df_corrs_dmn, type_plot='box', jitter=True):
+def plot_corr_dmn(df_corrs_dmn, type_plot='violin', jitter=False):
     """ Shows box or violin plot of the statistics of correlation between nodes in the TVB.
     Separates in three groups:
     - Correlations between nodes of the Default Mode Network (DMN)
@@ -644,3 +827,164 @@ def plot_corr_dmn(df_corrs_dmn, type_plot='box', jitter=True):
         sns.stripplot(x='group', y='corr', data=df_corrs_dmn, color="orange", jitter=0.2, size=2, ax=ax)
 
     return fig, ax
+
+
+def multiview_z_score(cortex, hemisphere_left, hemisphere_right, idx_regions_without_seed,
+                      z_score, zlim, seed_region=None, title='', figsize=(15, 10), **kwds):
+    """Function that will plot the parcellation of the brain color coded with the z_score values.
+    In theory, one will have a seed region with index = seed_region that will have been used to obtain
+    the correlations and z-scores of all the other regions. This index seed_region will be the only region
+    index not included in the region array.
+
+    It can also be used to obtain colormaps over the brain's surface if correctly adapted. In that case,
+    input idx_regions_without seed should contain all nodes and seed_region=None should work.
+
+    Parameters
+    ----------
+    cortex: tvb.datatypes.cortex.Cortex object
+        Cortex object. This and both hemispheres can be readily obtained with the following line of code:
+        cortex, conn, hem_left, hem_right = prepare_surface_regions_human(inputs)
+
+    hemisphere_left: np.ndarray
+        Hemisphere object obtained as previously mentioned
+
+    hemisphere_right: np.ndarray
+        Hemisphere object obtained as previously mentioned
+
+    idx_regions_without_seed: np.ndarray or list
+        Contains the indexes of all the regions (except the seed region) for which we have obtained
+        a z_score. Typically, 67 elements in our parcellation.
+
+    z_score: np.ndarray or list
+        Contains the z-scores of all the regions. Usually 68 elements, although one of them (corresponding
+        to seed region) might have extreme values, even infinite value. It will be masked.
+
+    zlim: float or tuple
+        If float the range of the colormap will be (-zlim, zlim) if tuple range will be (zlim[0], zlim[1])
+
+    seed_region: int
+        Index of the region that has been used as seed to obtain the z-scores.
+
+    title: str
+        If we want to give a title to the figure
+
+    Returns
+    -------
+    fig: matplotlib.pyplot.figure object
+        Contains the five graphs of the brain color graded using the z-score.
+    """
+    fig = plt.figure(figsize=figsize)
+
+    # Obtaining the triangulation from the cortex object
+    cs = cortex
+    vtx = cs.vertices  # Gives the three vertices of the many triangles in the parcellation
+    tri = cs.triangles
+    rm = cs.region_mapping
+    x, y, z = vtx.T
+
+    data = np.zeros((cs.region_mapping_data.array_data.shape[0],))  # data will be used for coloring
+    lh_tri = tri[np.unique(np.concatenate([np.where(rm[tri] == i)[0] for i in hemisphere_left]))]
+    lh_vtx = vtx[np.concatenate([np.where(rm == i)[0] for i in hemisphere_left])]
+    lh_x, lh_y, lh_z = lh_vtx.T
+    lh_tx, lh_ty, lh_tz = vtx[lh_tri].mean(axis=1).T
+    rh_tri = tri[np.unique(np.concatenate([np.where(rm[tri] == i)[0] for i in hemisphere_right]))]
+    rh_vtx = vtx[np.concatenate([np.where(rm == i)[0] for i in hemisphere_right])]
+    rh_x, rh_y, rh_z = rh_vtx.T
+    rh_tx, rh_ty, rh_tz = vtx[rh_tri].mean(axis=1).T
+    tx, ty, tz = vtx[tri].mean(axis=1).T
+
+    if type(idx_regions_without_seed) == list or type(idx_regions_without_seed) == np.ndarray:
+        for r in idx_regions_without_seed:
+            data[rm == r] = z_score[r]  # Set the z-score value for all except seed region. For coloring
+
+    # Find the seed_region and assign np.nan to it. Will be later mask for different color
+    if seed_region:
+        data[rm == seed_region] = np.nan
+        data = np.ma.masked_values(data, np.nan)
+
+    # We define the views we want to see
+    views = {
+        'lh-lateral': Triangulation(-x, z, lh_tri[np.argsort(lh_ty)[::-1]]),
+        'lh-medial': Triangulation(x, z, lh_tri[np.argsort(lh_ty)]),
+        'rh-medial': Triangulation(-x, z, rh_tri[np.argsort(rh_ty)[::-1]]),
+        'rh-lateral': Triangulation(x, z, rh_tri[np.argsort(rh_ty)]),
+        'both-superior': Triangulation(y, x, tri[np.argsort(tz)]),
+    }
+
+    def plotview(i, j, k, viewkey, z=None, zlim=None, shaded=False, viewlabel=False):
+        """Function that plots one of the views."""
+        cmap = plt.cm.get_cmap("RdBu_r").copy()
+        cmap.set_bad('green')
+        v = views[viewkey]
+        small_ax = plt.subplot(i, j, k)
+        if z is None:
+            raise ValueError("No z-score array")
+        if not viewlabel:
+            small_ax.axis('off')
+        kwargs = {'shading': 'gouraud'} if shaded else {'edgecolors': 'k', 'linewidth': 0.13}
+        tc = small_ax.tripcolor(v, z, cmap=cmap, **kwargs)
+        if type(zlim) is tuple:
+            tc.set_clim(vmin=zlim[0], vmax=zlim[1])
+        else:
+            tc.set_clim(vmin=-zlim, vmax=zlim)
+        small_ax.set_aspect('equal')
+
+        return small_ax, tc
+
+    plotview(2, 3, 1, 'lh-lateral', data, zlim=zlim, **kwds)
+    plotview(2, 3, 4, 'lh-medial', data, zlim=zlim, **kwds)
+    plotview(2, 3, 3, 'rh-lateral', data, zlim=zlim, **kwds)
+    plotview(2, 3, 6, 'rh-medial', data, zlim=zlim, **kwds)
+    ax, im = plotview(1, 3, 2, 'both-superior', data, zlim=zlim, **kwds)
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='5%', pad=0.05)
+    fig.colorbar(im, cax=cax, orientation='vertical')
+    if title:
+        plt.gcf().suptitle(title, y=0.85, fontsize=20)
+    fig.tight_layout()
+    return fig
+
+
+def ratio_most_active_from_dmn(fr, dmn_regions=None, k=10):
+    """Function that selects the k regions with highest mean FR and checks how many DMN regions are in
+    the top 10."""
+
+    if dmn_regions is None:
+        dmn_regions = [28, 29, 52, 53,  # mPFC
+                       50, 51, 20, 21]  # precuneus / posterior cingulate
+
+    mean_t_FR = np.mean(fr, axis=0)  # (M, ) of mean FR of each region
+
+    k_most_active = np.argpartition(mean_t_FR, -k)[-k:]
+    print(k_most_active)
+    count_in_dmn = 0
+    for active_region in k_most_active:
+        if active_region in dmn_regions:
+            count_in_dmn += 1
+
+    ratio_most_active = count_in_dmn / k
+
+    return ratio_most_active
+
+
+def ratio_zscore_from_dmn(FC, seed=50, dmn_regions=None, k=10):
+    """Function that selects the k regions more correlated with the seed region and checks how many DMN
+    regions are in that top 10. Minimum ratio of 0.1 since the seed region will have largest zscore."""
+
+    if dmn_regions is None:
+        dmn_regions = [28, 29, 52, 53,  # mPFC
+                       50, 51, 20, 21]  # precuneus / posterior cingulate
+
+    corrs_with_seed = FC[:, seed]
+    zscores = np.arctanh(corrs_with_seed)
+    k_more_correlated = np.argpartition(zscores, -k)[-k:]
+
+    count_in_dmn = 0
+    for active_region in k_more_correlated:
+        if active_region in dmn_regions:
+            count_in_dmn += 1
+
+    ratio_zscore = count_in_dmn / k
+
+    return ratio_zscore

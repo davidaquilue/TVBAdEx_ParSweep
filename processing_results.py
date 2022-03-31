@@ -10,7 +10,7 @@ from tvb_model_reference.view.plot_human import multiview_one, prepare_surface_r
 from analyses import *
 
 
-def batch_files(results_folder, batches_folder, batch_size=100, n_cols=41):
+def batch_files(results_folder, batches_folder, batch_size=100, n_cols=45):
     """Function that will merge the multiple .npy files in the results' folder into less, larger, .npy files.
 
     Parameters
@@ -61,7 +61,9 @@ dict_metrics = {'mean_FR_e': 5, 'mean_FR_i': 23, 'std_FR_e': 6, 'std_FR_i': 24,
                 'fmax_prom_i': 32, 'pmax_prom_i': 33, 'slope_PSD_e': 16, 'score_PSD_e': 17,
                 'slope_PSD_i': 34, 'score_PSD_i': 35, 'delta_rel_p_e': 18, 'theta_rel_p_e': 19,
                 'alpha_rel_p_e': 20, 'beta_rel_p_e': 21, 'gamma_rel_p_e': 22, 'delta_rel_p_i': 36,
-                'theta_rel_p_i': 37, 'alpha_rel_p_i': 38, 'beta_rel_p_i': 39, 'gamma_rel_p_i': 40}
+                'theta_rel_p_i': 37, 'alpha_rel_p_i': 38, 'beta_rel_p_i': 39, 'gamma_rel_p_i': 40,
+                'ratio_frmean_dmn_exc': 41, 'ratio_zscore_dmn_exc': 42, 'ratio_frmean_dmn_inh': 43,
+                'ratio_zscore_dmn_inh': 44}
 
 
 def load_metric_sweeps(name_metric, results_folder, steps=15):
@@ -247,7 +249,8 @@ if __name__ == '__main__':
     results_folder = './results/'
     batches_folder = '/home/master/Desktop/tests_MPI/results_batches/'
     batches_folder = './results_batches/'
-    batch_files(results_folder, batches_folder, batch_size=11, n_cols=41)
+    n_cols = len(dict_params.keys()) + len(dict_metrics.keys())
+    batch_files(results_folder, batches_folder, batch_size=11, n_cols=n_cols)
     fixed_params = {'a': 0.25, 'b_e': 65, 'T': 30}
     params_sweep = ('E_L_e', 'E_L_i')
     steps = 2
