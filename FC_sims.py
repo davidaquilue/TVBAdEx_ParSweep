@@ -47,6 +47,7 @@ Iext = 0.000315  # External input
 folder_root = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results_test_DMN/'
 
 for simnum in range(len(Job_proc)):
+    parameters.parameter_model['b_e'] = 0.0
     stimval = Job_proc[simnum][0]
     stimlen = Job_proc[simnum][1]
 
