@@ -897,7 +897,7 @@ def multiview_z_score(cortex, hemisphere_left, hemisphere_right, idx_regions_wit
         for r in idx_regions_without_seed:
             data[rm == r] = z_score[r]  # Set the z-score value for all except seed region. For coloring
 
-    # Find the seed_region and assign np.nan to it. Will be later mask for different color
+    # Assign np.nan to seed region. Will be masked for different color
     if seed_region:
         data[rm == seed_region] = np.nan
         data = np.ma.masked_values(data, np.nan)
@@ -987,3 +987,93 @@ def ratio_zscore_from_dmn(FC, seed=50, dmn_regions=None, k=10):
     ratio_zscore = count_in_dmn / k
 
     return ratio_zscore
+
+
+def hist_FR_dmn(fr, dmn_regions=None):
+    """ Returns two average histogram of FRs: one for the nodes in the DMN and the other for the nodes outside
+    the DMN.
+
+    Parameters
+    ----------
+    fr: ndarray
+        Numpy array of shape (N, M) containing the firing rates of M regions.
+
+    dmn_regions: list
+        Contains the indexes of the M regions that belong to the Default Mode Network.
+
+
+    Returns
+    -------
+    hist_DMN: ndarray
+        Averaged (and normalized) histogram of FRs of the nodes in the DMN
+
+    hist_others: ndarray
+        Averaged (and normalized) histogram of FRs of the nodes NOT in the DMN
+
+    bins: ndarray
+        Array containing the histogram bins' edges.
+    """
+
+    if dmn_regions is None:
+        dmn_regions = [28, 29, 52, 53,  # mPFC
+                       50, 51, 20, 21]  # precuneus / posterior cingulate
+
+    if np.amax(fr) > 120:  # If broken point, larger range for histogram
+        range_bins = (0, 200)
+    else:
+        range_bins = (0, 80)
+
+    bins_edges = np.arange(range_bins[0], range_bins[1] + 1)
+
+    N, M = fr.shape
+
+    hist_DMN = np.zeros(bins_edges.size - 1)
+    hist_others = np.zeros_like(hist_DMN)
+
+    for node in range(M):
+        hist_node, _ = np.histogram(fr[:, node], bins=bins_edges)
+        if node in dmn_regions:
+            hist_DMN += hist_node / np.sum(hist_node)
+        else:
+            hist_others += hist_node / np.sum(hist_node)
+
+    hist_DMN /= len(dmn_regions)
+    hist_others /= M - len(dmn_regions)
+
+    return hist_DMN, hist_others, bins_edges
+
+
+def plot_violin_hist_FR(hist_DMN, hist_others, bins_edges, jitter=False, bw_violin=0.3):
+    """Plot in violin form the results from the function hist_FR_dmn"""
+    center = (bins_edges[:-1] + bins_edges[1:]) / 2
+
+    factor = 10000  # Actually quite fast. Takes around 90ms with this factor.
+    inted_hist_DMN = np.array([int(factor * i) for i in hist_DMN])
+    inted_hist_others = np.array([int(factor * i) for i in hist_others])
+
+    inted_hists = [inted_hist_DMN, inted_hist_others]
+    labels = ['DMN', 'others']
+    dfs = []
+    for id_hist, inted_hist in enumerate(inted_hists):
+        data = []
+        for idx_in_hist, number_elements in enumerate(inted_hist):
+            for ii in range(number_elements):
+                data.append({'group': labels[id_hist], 'FR': center[idx_in_hist]})
+
+        dfs.append(pd.DataFrame(data))
+
+    final_data = pd.concat(dfs)
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 5))
+    sns.violinplot(x='group', y='FR', data=final_data, ax=ax, bw=bw_violin)
+
+    if bins_edges[-1] > 150:
+        ax.set(ylim=(-2, 200))
+    else:
+        ax.set(ylim=(-2, 60))
+
+    # We maintain the problems of the histogram. We will only have points in the centers of the bins.
+    # This problem can be seen when using jitter
+    if jitter:
+        sns.stripplot(x='group', y='FR', data=final_data, color="orange", jitter=0.2, size=2, ax=ax)
+    return fig, ax
