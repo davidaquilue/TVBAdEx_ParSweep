@@ -3,11 +3,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import tvb_model_reference.src.nuu_tools_simulation_human as tools
-
-from tvb_model_reference.simulation_file.parameter.parameter_M_Berlin import Parameter
-from tvb_model_reference.view.plot_human import multiview_one, prepare_surface_regions_human
+import warnings
 from analyses import *
+
+
+dict_params = {'a': 0, 'b_e': 1, 'E_L_i': 2, 'E_L_e': 3, 'T': 4}
+
+dict_metrics = {'mean_FR_e': 5, 'mean_FR_i': 23, 'std_FR_e': 6, 'std_FR_i': 24,
+                'mean_FC_e': 7, 'mean_FC_i': 25, 'mean_PLI_e': 8, 'mean_PLI_i': 26,
+                'mean_up_e': 9, 'mean_up_i': 27, 'mean_down_e': 10, 'mean_down_i': 28,
+                'max_FR_e': 11, 'max_FR_i': 29, 'fmax_amp_e': 12, 'pmax_amp_e': 13,
+                'fmax_amp_i': 30, 'pmax_amp_i': 31, 'fmax_prom_e': 14, 'pmax_prom_e': 15,
+                'fmax_prom_i': 32, 'pmax_prom_i': 33, 'slope_PSD_e': 16, 'score_PSD_e': 17,
+                'slope_PSD_i': 34, 'score_PSD_i': 35, 'delta_rel_p_e': 18, 'theta_rel_p_e': 19,
+                'alpha_rel_p_e': 20, 'beta_rel_p_e': 21, 'gamma_rel_p_e': 22, 'delta_rel_p_i': 36,
+                'theta_rel_p_i': 37, 'alpha_rel_p_i': 38, 'beta_rel_p_i': 39, 'gamma_rel_p_i': 40,
+                'ratio_frmean_dmn_exc': 41, 'ratio_zscore_dmn_exc': 42, 'ratio_frmean_dmn_inh': 43,
+                'ratio_zscore_dmn_inh': 44, 'ratio_AI_exc': 45}
 
 
 def batch_files(results_folder, batches_folder, batch_size=100, n_cols=45):
@@ -51,22 +63,31 @@ def batch_files(results_folder, batches_folder, batch_size=100, n_cols=45):
         np.save(name_batch, file_batch)
 
 
-dict_params = {'a': 0, 'b_e': 1, 'E_L_i': 2, 'E_L_e': 3, 'T': 4}
 
-dict_metrics = {'mean_FR_e': 5, 'mean_FR_i': 23, 'std_FR_e': 6, 'std_FR_i': 24,
-                'mean_FC_e': 7, 'mean_FC_i': 25, 'mean_PLI_e': 8, 'mean_PLI_i': 26,
-                'mean_up_e': 9, 'mean_up_i': 27, 'mean_down_e': 10, 'mean_down_i': 28,
-                'max_FR_e': 11, 'max_FR_i': 29, 'fmax_amp_e': 12, 'pmax_amp_e': 13,
-                'fmax_amp_i': 30, 'pmax_amp_i': 31, 'fmax_prom_e': 14, 'pmax_prom_e': 15,
-                'fmax_prom_i': 32, 'pmax_prom_i': 33, 'slope_PSD_e': 16, 'score_PSD_e': 17,
-                'slope_PSD_i': 34, 'score_PSD_i': 35, 'delta_rel_p_e': 18, 'theta_rel_p_e': 19,
-                'alpha_rel_p_e': 20, 'beta_rel_p_e': 21, 'gamma_rel_p_e': 22, 'delta_rel_p_i': 36,
-                'theta_rel_p_i': 37, 'alpha_rel_p_i': 38, 'beta_rel_p_i': 39, 'gamma_rel_p_i': 40,
-                'ratio_frmean_dmn_exc': 41, 'ratio_zscore_dmn_exc': 42, 'ratio_frmean_dmn_inh': 43,
-                'ratio_zscore_dmn_inh': 44, 'ratio_AI_exc': 45}
+def load_whole_sweep(results_folder, steps):
+    """Loads the whole parameter sweep to memory."""
+    warnings.warn("ATTENTION: This function will be too expensive with the whole parameter sweep")
+    
+    files = os.listdir(results_folder)
+
+    parameter_sweep = np.empty((steps ** 5, len(dict_params) + len(dict_metrics)))
+
+    running_idx = 0
+    for file in files:
+        if '.npy' in file:
+            aux_file = np.load(results_folder + file)
+            rows_aux = aux_file.shape[0]
+
+            parameter_sweep[running_idx: running_idx + rows_aux, :] = aux_file
+            
+            running_idx += rows_aux
+    
+    return parameter_sweep
+
 
 
 def load_metric_sweeps(name_metric, results_folder, steps=15):
+    # TODO document this function better
     """Function that will merge the multiple .npy files in the results' folder into less, larger, .npy files.
 
     Parameters
@@ -98,12 +119,11 @@ def load_metric_sweeps(name_metric, results_folder, steps=15):
         metric_idx = []
         for name in name_metric:
             metric_idx.append(dict_metrics[name])
-        pars_metric = np.empty((steps ** 5, 5 + len(name_metric)))  # steps**5 rows, 5 params + 1 metric cols
+        pars_metric = np.empty((steps ** 5, 5 + len(name_metric)))  # steps**5 rows, 5 params + N metric cols
     else:
         raise ValueError("Invalid name_metric type")
 
     running_idx = 0
-    ii = 0
     for file in files:
         if '.npy' in file:
             aux_file = np.load(results_folder + file)
@@ -115,8 +135,6 @@ def load_metric_sweeps(name_metric, results_folder, steps=15):
             else:
                 pars_metric[running_idx: running_idx + rows_aux, 5: 5 + len(name_metric)] = aux_file[:, metric_idx]
             running_idx += rows_aux
-
-            ii += 1
 
     return pars_metric
 
@@ -134,35 +152,69 @@ def find_closest_val(param_name, desired_value, steps):
 
 def metric_for_pairs(params_metric_array, name_metric,
                      sweep_params, fixed_params, steps=2, do_plot=False, fig=None, ax=None):
-    """Main idea. Fix three parameters using the fixed params dictionary which will contain the three values that
-    we wiill not sweep as keys and their desired fixed values as values of dict.
+    """Obtains the values of one metric when varying two of the five parameters while fixing the other three.
+    One can select to also obtain an imshow of the matrix.
+    The fixed parameters can be set to trivial values and the function will find the closest parameter values
+    that have been used in the parameter sweep to obtain the plot.
 
-    The value will be fixed to the closest value of the parameter sweep.
+    Parameters
+    ----------
+    params_metric_array: ndarray (steps**5, 6)
+        Array containing all the values of the parameter sweep of the 5 parameters + 1 metric in the last column.
+    
+    name_metric: str
+        Name of the metric from which we want to obtain the matrix. It has to be included in dict_metrics
 
-    Then I will try to find to extract the values and params of the parameter sweep and build a matrix with that.
+    sweep_params: list, tuple
+        Contains the two strings of the parameters for which we will observe the change in the metric value
+    
+    fixed_params: dict
+        Dictionary with strings and desired fixed values of other 3 parameters.
 
-    Ideally, matrix is ordered from the ground up.
+    steps: int
+        Number of different values obtained for each parameter in the original Parameter Sweep in HPC.
+
+    do_plot: bool
+        Whether return an ax with the imshow plotted.
+    
+    fig: matplotlib.pyplot.figure object
+        Figure in which we want to plot the imshow if do_plot
+    
+    ax: matplotlib.pyplot.axis object
+        Axis object where we want to plot the imshow if do_plot
+
+    Returns
+    ----------
+    mat: ndarray 
+        Array of shape (steps, steps) containing values of desired metric when changing parameters in sweep_params.
+
+     ax: matplotlib.pyplot.axis object
+        Axis object where with the imshow plotted if do_plot
     """
-
-    # First step, indexing the array to obtain only the values of params_metrics_array that contain the fixed points
+    # Handling errors in the inputs
+    if len(fixed_params.keys()) != 3:
+        raise ValueError("Three parameters must be fixed.")
+    if len(sweep_params) != 2:
+        raise ValueError("Sweep can only be performed over two parameters.")
+    if len([i for i in fixed_params.keys() if i in sweep_params]) != 0:
+        raise ValueError("Sweep and Fixed parameters cannot coincide")
+    
     closest_to_desired = {}  # A dictionary containing {fixed_parameter_key: closest_value in sweep}
     for fixed_param in fixed_params:
         desired_value = fixed_params[fixed_param]
         closest_to_desired[fixed_param] = find_closest_val(fixed_param, desired_value, steps)
     
-    print(closest_to_desired)
-    # First we obtain the indexes of those rows that contain the fixed params.
-    for i, fixed_param in enumerate(fixed_params):
+    for i, fixed_param in enumerate(fixed_params):  # Obtain the indexes of those rows that contain the fixed params.
         fix_par_idx_in_arr = dict_params[fixed_param]
         if i == 0:
             bool_idxs = params_metric_array[:, fix_par_idx_in_arr] == closest_to_desired[fixed_param]
         else:
             bool_idxs = (params_metric_array[:, fix_par_idx_in_arr] == closest_to_desired[fixed_param]) & bool_idxs
 
-    # Now we have a new array containing only those rows where the sweep_params change.
+    # New array containing only those rows where the sweep_params change.
     new_array = params_metric_array[bool_idxs, :]
-    # We now have to find a way to build the matrix
-    # It might not be that hard, build two vectors with linspace, look at the matrix and assign them.
+
+    # Building the matrix that will be used for the imshow. Increasing values of parameters in x and y dir.
     par_x = sweep_params[0]
     par_y = sweep_params[1]
     sweep_par_x = np.linspace(ranges_params[par_x][0], ranges_params[par_x][1], steps)
@@ -172,10 +224,9 @@ def metric_for_pairs(params_metric_array, name_metric,
 
     par_x_idx_in_arr = dict_params[par_x]
     par_y_idx_in_arr = dict_params[par_y]
-    for id_x, val_x in enumerate(sweep_par_x):
+    for id_x, val_x in enumerate(sweep_par_x):  # Assign to each element the corresponding metric value
         for id_y, val_y in enumerate(sweep_par_y):
             idx_row_array = (new_array[:, par_x_idx_in_arr] == val_x) & (new_array[:, par_y_idx_in_arr] == val_y)
-            print(val_x, val_y)
             plot_matrix[- (id_y + 1), id_x] = new_array[idx_row_array, -1][0]
 
     if do_plot:
@@ -185,6 +236,8 @@ def metric_for_pairs(params_metric_array, name_metric,
             # Make a nice title
             list_fix = [(fixed_param + ' = ' + str(closest_to_desired[fixed_param])) for fixed_param in fixed_params]
             title = name_metric + ' for ' + ', '.join(list_fix)
+            if len(title) > 52:
+                title = name_metric + ' for ' + ', \n'.join(list_fix)
 
             # plot the image and manage the axis
             im = ax.imshow(plot_matrix)
@@ -197,8 +250,11 @@ def metric_for_pairs(params_metric_array, name_metric,
             else:
                 ax.set_xticks(range(steps))
                 ax.set_yticks(range(steps))
-                ax.set_xticklabels(map(str, sweep_par_x))
-                ax.set_yticklabels(map(str, np.flip(sweep_par_y)))
+                # Shorten lenghts in some cases
+                xticklabels = [str_tick[0:6] for str_tick in map(str, sweep_par_x)]
+                yticklabels = [str_tick[0:6] for str_tick in map(str, sweep_par_y)]
+                ax.set_xticklabels(xticklabels)
+                ax.set_yticklabels(yticklabels)
 
             # Colorbar
             ax.set(xlabel=par_x, ylabel=par_y, title=title)
@@ -210,9 +266,33 @@ def metric_for_pairs(params_metric_array, name_metric,
         return plot_matrix
 
 
-def plot_multiple_metrics(metrics, results_folder, params_sweep, fixed_params, steps):
+def plot_multiple_metrics(metrics, results_folder, sweep_params, fixed_params, steps):
+    """Returns a figure with the different imshows of the selected metrics.
 
-    subplot_width = 5
+    Parameters
+    ----------
+    metrics: list, tuple
+        Contains the names of all the metrics for which we want to obtain an imshow panel.
+    
+    results_folder: str
+        Directory to where the function has to go look for the results of the parameter sweep.
+
+    sweep_params: list, tuple
+        Contains the two strings of the parameters for which we will observe the change in the metric value
+    
+    fixed_params: dict
+        Dictionary with strings and desired fixed values of other 3 parameters.
+
+    steps: int
+        Number of different values obtained for each parameter in the original Parameter Sweep in HPC.
+
+
+    Returns
+    ----------
+    fig: matplotlib.pyplot.figure object
+        Figure in which the len(metrics) panels have been plotted
+    """
+    subplot_width = 5  # matplotlib units (I think inches)
     subplot_height = 5
     n_plots = len(metrics)
     if n_plots < 3:
@@ -239,11 +319,58 @@ def plot_multiple_metrics(metrics, results_folder, params_sweep, fixed_params, s
 
     for plot, metric in enumerate(metrics):
         params_metric = load_metric_sweeps(metric, results_folder, steps=steps)
-        mat, axes[plot] = metric_for_pairs(params_metric, metric, params_sweep, fixed_params,
+        mat, axes[plot] = metric_for_pairs(params_metric, metric, sweep_params, fixed_params,
                                            steps=steps, do_plot=True, fig=fig, ax=axes[plot])
 
     fig.tight_layout()
     return fig
+
+
+def params_of_max_metric(metric, results_folder, steps, verbose=True):
+    """Returns an array with the sets of parameters that result in the maximum value of the metric.
+
+    Parameters
+    ----------
+    metrics: list, tuple
+        Contains the names of all the metrics for which we want to obtain an imshow panel.
+    
+    results_folder: str
+        Directory to where the function has to go look for the results of the parameter sweep.
+
+    sweep_params: list, tuple
+        Contains the two strings of the parameters for which we will observe the change in the metric value
+    
+    fixed_params: dict
+        Dictionary with strings and desired fixed values of other 3 parameters.
+
+    steps: int
+        Number of different values obtained for each parameter in the original Parameter Sweep in HPC.
+
+
+    Returns
+    ----------
+    fig: matplotlib.pyplot.figure object
+        Figure in which the len(metrics) panels have been plotted
+    """
+    pars_metric = load_metric_sweeps(metric, results_folder, steps)
+    max_value_metric = np.amax(pars_metric[:, -1])
+    idxes = np.where(pars_metric[:, -1] == max_value_metric)[0]
+    pars_where_max = pars_metric[idxes, 0:5]
+
+    if verbose:
+        print(f"Max {metric} = {max_value_metric}")
+        if pars_where_max.shape[0] > 50:
+            print("Print would be too long")
+        else:
+            print(f"Sets of values for maximum {metric}")
+            for i in range(pars_where_max.shape[0]):
+                print_str = ''
+                for j, param in enumerate(dict_params):
+                    print_str += param + '= ' + str(pars_where_max[i, j]) + ', '
+                print(print_str)
+
+    return max_value_metric, pars_where_max, idxes
+
 
 
 if __name__ == '__main__':
@@ -254,9 +381,9 @@ if __name__ == '__main__':
     #n_cols = len(dict_params.keys()) + len(dict_metrics.keys())
     #batch_files(results_folder, batches_folder, batch_size=11, n_cols=n_cols)
     fixed_params = {'a': 0.25, 'b_e': 65, 'E_L_i': -60}
-    params_sweep = ('E_L_e', 'T')
+    sweep_params = ('E_L_e', 'T')
     steps = 6
     metrics = ['mean_FR_e', 'mean_FR_i', 'max_FR_e', 'mean_FC_e', 'ratio_zscore_dmn_inh', 'ratio_AI_exc']
-    fig = plot_multiple_metrics(metrics, batches_folder, params_sweep, fixed_params, steps)
+    fig = plot_multiple_metrics(metrics, batches_folder, sweep_params, fixed_params, steps)
     plt.show()
     fig.savefig('test.png')
