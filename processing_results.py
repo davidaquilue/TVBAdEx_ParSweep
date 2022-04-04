@@ -149,7 +149,8 @@ def metric_for_pairs(params_metric_array, name_metric,
     for fixed_param in fixed_params:
         desired_value = fixed_params[fixed_param]
         closest_to_desired[fixed_param] = find_closest_val(fixed_param, desired_value, steps)
-
+    
+    print(closest_to_desired)
     # First we obtain the indexes of those rows that contain the fixed params.
     for i, fixed_param in enumerate(fixed_params):
         fix_par_idx_in_arr = dict_params[fixed_param]
@@ -160,7 +161,6 @@ def metric_for_pairs(params_metric_array, name_metric,
 
     # Now we have a new array containing only those rows where the sweep_params change.
     new_array = params_metric_array[bool_idxs, :]
-
     # We now have to find a way to build the matrix
     # It might not be that hard, build two vectors with linspace, look at the matrix and assign them.
     par_x = sweep_params[0]
@@ -175,6 +175,7 @@ def metric_for_pairs(params_metric_array, name_metric,
     for id_x, val_x in enumerate(sweep_par_x):
         for id_y, val_y in enumerate(sweep_par_y):
             idx_row_array = (new_array[:, par_x_idx_in_arr] == val_x) & (new_array[:, par_y_idx_in_arr] == val_y)
+            print(val_x, val_y)
             plot_matrix[- (id_y + 1), id_x] = new_array[idx_row_array, -1][0]
 
     if do_plot:
@@ -246,17 +247,16 @@ def plot_multiple_metrics(metrics, results_folder, params_sweep, fixed_params, s
 
 
 if __name__ == '__main__':
-    results_folder = './results/'
-    results_folder = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results/'
-    batches_folder = '/home/master/Desktop/tests_MPI/results_batches/'
+    #results_folder = './results/'
+    #results_folder = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results/'
+    #batches_folder = '/home/master/Desktop/tests_MPI/results_batches/'
     batches_folder = './results_batches/'
-    n_cols = len(dict_params.keys()) + len(dict_metrics.keys())
-    batch_files(results_folder, batches_folder, batch_size=11, n_cols=n_cols)
-    fixed_params = {'a': 0.25, 'b_e': 65, 'T': 30}
-    params_sweep = ('E_L_e', 'E_L_i')
-    steps = 2
-    metrics = ['mean_FR_e', 'mean_FR_i', 'slope_PSD_e', 'score_PSD_e', 'slope_PSD_i',
-               'score_PSD_i', 'ratio_zscore_dmn_inh', 'ratio_AI_exc']
+    #n_cols = len(dict_params.keys()) + len(dict_metrics.keys())
+    #batch_files(results_folder, batches_folder, batch_size=11, n_cols=n_cols)
+    fixed_params = {'a': 0.25, 'b_e': 65, 'E_L_i': -60}
+    params_sweep = ('E_L_e', 'T')
+    steps = 6
+    metrics = ['mean_FR_e', 'mean_FR_i', 'max_FR_e', 'mean_FC_e', 'ratio_zscore_dmn_inh', 'ratio_AI_exc']
     fig = plot_multiple_metrics(metrics, batches_folder, params_sweep, fixed_params, steps)
     plt.show()
     fig.savefig('test.png')

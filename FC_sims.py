@@ -17,7 +17,7 @@ size = comm.Get_size()
 
 # To run the script with 3 cores type in terminal: mpiexec -n 3 python3 script.py
 
-stimval_max = 0.1 / 1000  # 0.1 Hz if the model runs with kHz.
+stimval_max = 0.1
 stimvals = [stimval_max/3, stimval_max/2 , stimval_max]
 stim_lens = [50, 500, 1000, 2000]  # in ms
 stim_region = 5
@@ -52,7 +52,7 @@ for simnum in range(len(Job_proc)):
     stimlen = Job_proc[simnum][1]
 
     weights = list(np.zeros(68))
-    weights[stim_region] = stimval
+    weights[stim_region] = stimval / 1000  # If the model runs with kHz.
 
     parameters.parameter_stimulus['tau'] = stimlen  # Stimulus duration
     parameters.parameter_stimulus['T'] = 1e9  # Interstimulus interval
