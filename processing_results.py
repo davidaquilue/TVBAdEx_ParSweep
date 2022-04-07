@@ -236,7 +236,7 @@ def metric_for_pairs(params_metric_array, name_metric,
             # Make a nice title
             list_fix = [(fixed_param + ' = ' + str(closest_to_desired[fixed_param])) for fixed_param in fixed_params]
             title = name_metric + ' for ' + ', '.join(list_fix)
-            if len(title) > 52:
+            if len(title) > 40:
                 title = name_metric + ' for ' + ', \n'.join(list_fix)
 
             # plot the image and manage the axis
@@ -252,7 +252,7 @@ def metric_for_pairs(params_metric_array, name_metric,
                 ax.set_yticks(range(steps))
                 # Shorten lenghts in some cases
                 xticklabels = [str_tick[0:6] for str_tick in map(str, sweep_par_x)]
-                yticklabels = [str_tick[0:6] for str_tick in map(str, sweep_par_y)]
+                yticklabels = [str_tick[0:6] for str_tick in map(str, np.flip(sweep_par_y))]
                 ax.set_xticklabels(xticklabels)
                 ax.set_yticklabels(yticklabels)
 
@@ -292,8 +292,8 @@ def plot_multiple_metrics(metrics, results_folder, sweep_params, fixed_params, s
     fig: matplotlib.pyplot.figure object
         Figure in which the len(metrics) panels have been plotted
     """
-    subplot_width = 5  # matplotlib units (I think inches)
-    subplot_height = 5
+    subplot_width = 6  # matplotlib units (I think inches)
+    subplot_height = 6
     n_plots = len(metrics)
     if n_plots < 3:
         fig, axes = plt.subplots(1, n_plots, figsize=(n_plots * subplot_width, subplot_height))
@@ -326,35 +326,36 @@ def plot_multiple_metrics(metrics, results_folder, sweep_params, fixed_params, s
     return fig
 
 
-def params_of_max_metric(metric, results_folder, steps, verbose=True):
-    """Returns an array with the sets of parameters that result in the maximum value of the metric.
+def params_of_max_metric(metric, results_folder, steps, avoid_bp=True, verbose=True):
+    # TODO Document this better
+    """
 
-    Parameters
+    Paramaters
     ----------
-    metrics: list, tuple
+    metric:
+
+    results_folder:
+
+    steps:
+
+    avoid_bp: bool
         Contains the names of all the metrics for which we want to obtain an imshow panel.
-    
-    results_folder: str
-        Directory to where the function has to go look for the results of the parameter sweep.
 
-    sweep_params: list, tuple
-        Contains the two strings of the parameters for which we will observe the change in the metric value
-    
-    fixed_params: dict
-        Dictionary with strings and desired fixed values of other 3 parameters.
-
-    steps: int
-        Number of different values obtained for each parameter in the original Parameter Sweep in HPC.
-
+    verbose: bool
 
     Returns
     ----------
-    fig: matplotlib.pyplot.figure object
-        Figure in which the len(metrics) panels have been plotted
     """
     pars_metric = load_metric_sweeps(metric, results_folder, steps)
-    max_value_metric = np.amax(pars_metric[:, -1])
-    idxes = np.where(pars_metric[:, -1] == max_value_metric)[0]
+
+    if avoid_bp:
+        max_FRs = load_metric_sweeps('max_FR_e', results_folder, steps)
+        no_bps_idxes = max_FRs[:, -1] < 180
+        max_value_metric = np.nanmax(pars_metric[no_bps_idxes, -1])
+        idxes = np.logical_and(pars_metric[:, -1] == max_value_metric, no_bps_idxes)
+    else:
+        max_value_metric = np.nanmax(pars_metric[:, -1])
+        idxes = np.where(pars_metric[:, -1] == max_value_metric)[0]
     pars_where_max = pars_metric[idxes, 0:5]
 
     if verbose:

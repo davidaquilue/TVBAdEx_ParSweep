@@ -21,7 +21,7 @@ size = comm.Get_size()
 # $ mpiexec -n 20 --oversubscribe python3 script.py. 
 # That way maximum rank will be 19 and size will be 20.
 
-steps = 20
+steps = 40
 b_vals = [0]
 seeds = [i for i in range(20, 20+steps)]
 
@@ -43,19 +43,19 @@ else:
 print('I am the process number : ', rank, ' and len of my list is : ', len(Job_proc))
 
 # Set the parameters of the simulation:
-run_sim = 5000.0  # ms, length of the simulation
+run_sim = 7000.0  # ms, length of the simulation
 cut_transient = 2000.0  # ms, length of the discarded initial segment
 Iext = 0.000315  # External input
 
 # Define a location to save the files wll make sure they already created.
-folder_root = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results_test_DMN/'
+folder_root = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results_test_DMN/results_seeds/'
 
 for simnum in range(len(Job_proc)):
+    print(f'simulating seed {Job_proc[simnum][1]}')
     random.seed(Job_proc[simnum][1])
     np.random.seed(Job_proc[simnum][1])
-    parameters.parameter_model['b_e'] = Job_proc[simnum][0] + np.random.rand()
-    print(parameters.parameter_model['b_e'])
-    parameters.parameter_simulation['seed'] = Job_proc[simnum][1] + np.random.rand()
+    parameters.parameter_model['b_e'] = Job_proc[simnum][0]
+    parameters.parameter_simulation['seed'] = Job_proc[simnum][1] * np.random.rand()
     E_in = 5 * np.random.rand()
     I_in = 10 + E_in
     parameters.parameter_model['initial_condition']['E'] = [E_in, E_in]
