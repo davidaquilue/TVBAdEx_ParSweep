@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import warnings
 from analyses import *
-
+import os
 
 dict_params = {'a': 0, 'b_e': 1, 'E_L_i': 2, 'E_L_e': 3, 'T': 4}
 
@@ -85,10 +85,8 @@ def load_whole_sweep(results_folder, steps):
     return parameter_sweep
 
 
-
 def load_metric_sweeps(name_metric, results_folder, steps=15):
-    # TODO document this function better
-    """Function that will merge the multiple .npy files in the results' folder into less, larger, .npy files.
+    """Returns the values of one or multiple metrics for all the parameter space exploration.
 
     Parameters
     ----------
@@ -97,7 +95,7 @@ def load_metric_sweeps(name_metric, results_folder, steps=15):
         in processing_results.py
 
     results_folder: str
-        Path to the folder containing the results
+        Path to the folder containing the results.
 
     steps: int
         Number of steps taken for each parameter in the parameter sweep.
@@ -105,9 +103,9 @@ def load_metric_sweeps(name_metric, results_folder, steps=15):
     Returns
     -------
     pars_metric: ndarray
-        A (steps**5, 6) array containing the value of the metric for all the combinations in the parameter sweep.
-        Columns 0 to 4 correspond to the parameters. Column 5 and onwards contain the values of the metrics. Same order
-        as the name_metric list in case that more than one metric is retrieved.
+        A (steps**5, 5 + len(name_metric)) array containing the value of the metric for all the combinations in the
+        parameter sweep. Columns 0 to 4 correspond to the parameters. Column 5 and onwards contain the values of the
+        metrics. Same order as the name_metric list in case that more than one metric is retrieved.
     """
 
     files = os.listdir(results_folder)
@@ -145,6 +143,8 @@ ranges_params = {'a': (0, 0.5), 'b_e': (0, 120), 'E_L_e': (-80, -60), 'E_L_i': (
 def find_closest_val(param_name, desired_value, steps):
     """Returns the closest value of param_name to desired_value in the parameter sweep."""
     range_min, range_max = ranges_params[param_name]
+    # TODO When going to the large sweep change to the round setup. Now to analyze previous results cant use it
+    # sweep = np.round(np.linspace(range_min, range_max, steps), 3)
     sweep = np.linspace(range_min, range_max, steps)
     idx = (np.abs(sweep - desired_value)).argmin()
     return sweep[idx]
@@ -217,6 +217,9 @@ def metric_for_pairs(params_metric_array, name_metric,
     # Building the matrix that will be used for the imshow. Increasing values of parameters in x and y dir.
     par_x = sweep_params[0]
     par_y = sweep_params[1]
+    # TODO When going to the large sweep change to the round setup. Now to analyze previous results cant use it
+    # sweep_par_x = np.round(np.linspace(ranges_params[par_x][0], ranges_params[par_x][1], steps), 3)
+    # sweep_par_y = np.round(np.linspace(ranges_params[par_y][0], ranges_params[par_y][1], steps), 3)
     sweep_par_x = np.linspace(ranges_params[par_x][0], ranges_params[par_x][1], steps)
     sweep_par_y = np.linspace(ranges_params[par_y][0], ranges_params[par_y][1], steps)
 
@@ -327,24 +330,37 @@ def plot_multiple_metrics(metrics, results_folder, sweep_params, fixed_params, s
 
 
 def params_of_max_metric(metric, results_folder, steps, avoid_bp=True, verbose=True):
-    # TODO Document this better
-    """
+    """ Returns those combinations of parameters that share the maximum value of one metric. Also returns the maximum
+    value of the metric and the row indexes of said combinations.
 
     Paramaters
     ----------
-    metric:
+    metric: str
+        Code name of the metric for which we search the maximum value and the parameters that result in this value.
 
-    results_folder:
+    results_folder: str
+        Path to the directory containing all the results of the parameter sweep.
 
-    steps:
+    steps: int
+        Number of different values obtained for each parameter in the original Parameter Sweep in HPC.
 
     avoid_bp: bool
-        Contains the names of all the metrics for which we want to obtain an imshow panel.
+        If True, the search of parameters that result in maximum value of the metric will be done on the subspace of the
+        parameter space where the broken point has not been reached.
 
     verbose: bool
+        Whether we want to print the parameter values that result in the maximum metric value.
 
     Returns
     ----------
+    max_value_metric: float
+        The maximum value of the selected metric
+
+    pars_where_max: numpy.ndarray
+        A (K, 5) array containing the K different combinations of parameters that result in max_value_metric
+
+    idxes: ndarray
+        A (K, ) array containing the row index of the parameter values resulting in max_value_metric
     """
     pars_metric = load_metric_sweeps(metric, results_folder, steps)
 
@@ -372,6 +388,89 @@ def params_of_max_metric(metric, results_folder, steps, avoid_bp=True, verbose=T
 
     return max_value_metric, pars_where_max, idxes
 
+
+# Cleaning the results, managing errors
+# Folder system assumed:
+# Main folder 1: Permanent partition / Data partition
+#   Contains 3 directories: Codes, Data (contain Remaining Chunks and Original Chunks), Final Results
+# Main folder 2: Temporary partition / Scratch partition
+#   Contains 2 directories: Results, Indicators
+
+# We will divide the parameter space into multiple chunks. Each of the 5 folders mentioned will have one folder/chunk
+# inside.
+
+# Pipeline (for one chunk): Simulations -> Store metrics in Results + store a COMPLETED.txt in Indicators if everything
+# went well -> Simulations finished then load chunk from Data and iterate over Indicators, if in Indicator, delete row
+# -> We are left with a Remaining Chunk that we will store in Data -> Now iterate over Results and delete those .npy
+# files that are IN Remaining Chunk and in Results (meaning that they were not completed but it was stored anyways).
+
+# Printing the shape of the Remaining Chunk might be useful to check how many simulations are left in a chunk
+
+
+# Two functions: one for the remaining, one for the cleaning. Maybe a single one could be enough but modularity
+def build_remaining_chunk(indicators_chunk_folder, parsw_chunk, rem_chunk_folder, verbose=True):
+    """Function that will check which parameter combinations in parsw_chunk have not been completely simulated (using
+    info in indicators_chunk_folder) and will store a rem_chunk array containing those parameter combinations that have
+    to be simulated again.
+
+    Parameters
+    ----------
+    indicators_chunk_folder: str
+        Path to the Indicators of the corresponding chunk of parameter space. Information about completed simulations is
+        stored in that folder.
+
+    parsw_chunk: str
+        Path to the .npy file containing (N, 5) array, a subset of the whole parameter space, containing N parameter
+        combinations. It will also give us the chunk number
+
+    rem_chunk_folder: str
+        Path to the directory where one wants to store the rem_chunk array.
+
+    verbose: bool
+        Whether we want to print or not the shape of the rem_chunk array.
+
+    Returns
+    ----------
+
+    """
+    parsweep_data = np.load(parsw_chunk)
+    chunk_n = int(parsw_chunk.split('_')[-1][:-4])  # Since it is a .npy path
+
+    # Check if same number of rows in parsweep_data and indicators in folder.
+    n_files = 0
+    for file in os.scandir(indicators_chunk_folder):
+        n_files += 1
+
+    if n_files == parsweep_data.shape[0]:  # If yes no need to do anything else
+        print('All simulations correctly computed')
+
+    else:  # If not, we need to iterate over all the elements in Indicators folder and delete its row in parsweep_data
+        for file in os.scandir(indicators_chunk_folder):  # sweep over all Indicator files
+            split_str = file.name.split('_')
+            a = float(split_str[2])
+            b = float(split_str[4])
+            E_L_i = float(split_str[6])
+            E_L_e = float(split_str[8])
+            T = float(split_str[10][:-4])  # .npy is not separated, we have to get rid of it at the end.
+
+            # Now put strange number in the
+            S_idx = parsweep_data[:, 0] == a
+            b_idx = parsweep_data[:, 1] == b
+            E_L_i_idx = parsweep_data[:, 2] == E_L_i
+            E_L_e_idx = parsweep_data[:, 3] == E_L_e
+            T_idx = parsweep_data[:, 4] == T
+            all_idx = np.logical_and.reduce((S_idx, b_idx, E_L_i_idx, E_L_e_idx, T_idx))
+            parsweep_data[all_idx, :] = np.nan
+        # Once we have filled with nans. We remove those rows that contain a nan value, leaving us with rem_chunk
+        rem_chunk = parsweep_data[~np.isnan(parsweep_data).any(axis=1), :]
+
+        if verbose:
+            print(f'Number of rows in rem_chunk: {rem_chunk.shape[0]} rows')
+
+        np.save(rem_chunk_folder + 'rem_chunk' + str(chunk_n) + '.npy', rem_chunk)  # save array
+
+        # TODO Tomorrow maybe start from here and continue with the Cleaning results. I think it can be done in a single
+        # fucntion, I don't see why not. Less problems and in the end you will always want to do remaining + cleaning
 
 
 if __name__ == '__main__':

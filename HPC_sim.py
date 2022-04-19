@@ -9,7 +9,6 @@ from analyses import *
 
 parameters = Parameter()
 
-start_time = time.time()
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
@@ -20,12 +19,20 @@ size = comm.Get_size()
 # $ mpiexec -n 20 --oversubscribe python3 script.py. 
 # That way maximum rank will be 19 and size will be 20.
 
+
+# TODO: This will be changed once we have the folder with the chunks in the data partition of JUSUF
+# This will have been done outside and here we will only need to select the chunk of the parameter space that we want
+# to run.
 steps = 2  # Let's say 15 at the moment.
-S_vals = np.linspace(0, 0.5, steps)
-b_vals = np.linspace(0, 120, steps)
-E_L_e_vals = np.linspace(-80, -60, steps)
-E_L_i_vals = np.linspace(-80, -60, steps)
-T_vals = np.linspace(5, 40, steps)
+
+# We will round the points in the parameter space to have only three floating point values. Will be better for the
+# titles of the files and for the plots.
+# HAVE THIS IN MIND TO PLOT AND ANALYZE, WE WILL HAVE TO ALWAYS ROUND TO AVOID ERRORS
+S_vals = np.round(np.linspace(0, 0.5, steps), 3)
+b_vals = np.round(np.linspace(0, 120, steps), 3)
+E_L_i_vals = np.round(np.linspace(-80, -60, steps), 3)
+E_L_e_vals = np.round(np.linspace(-80, -60, steps), 3)
+T_vals = np.round(np.linspace(5, 40, steps), 3)
 
 S_vals = list(S_vals)
 b_vals = list(b_vals)
@@ -50,23 +57,28 @@ Rem = L % size
 job_len = L // size
 
 if rank < Rem:
-    Job_proc = combinaison[rank + rank * job_len: rank + 1 + (1 + rank) * job_len]
+    Job_proc = np.array(combinaison[rank + rank * job_len: rank + 1 + (1 + rank) * job_len])
 else:
-    Job_proc = combinaison[Rem + rank*job_len: Rem + (1 + rank) * job_len]
+    Job_proc = np.array(combinaison[Rem + rank*job_len: Rem + (1 + rank) * job_len])
         
-print('I am the process number : ', rank, ' and len of my list is : ', len(Job_proc))
-Job_proc = np.array(Job_proc)
+#print('I am the process number : ', rank, ' and len of my list is : ', Job_proc.shape[0])
 
 # Set the parameters of the simulation:
 run_sim = 5000.0  # ms, length of the simulation
 cut_transient = 2000.0  # ms, length of the discarded initial segment
 Iext = 0.000315  # External input
 
+# TODO: Change these two folders everytime we execute a new job (new chunk of the parameter space)
 # Define a location to save the files wll make sure they already created.
-folder_root = './results/'
 folder_root = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results/'  # Lab computer with external disk
+# When running in HPC, we will create a directory in the partition that allows us to write huge numbers of files.
+# In that folder we will create as many folders as chunks of the entire parameter space we have.
+# In each chunk folder we will generate a '_a_0.0_b_0.0_ELI_0.0_ELE_0.0_T_0.0_COMPLETED.txt file after each simulation
+# has been completed.
+indicator_folder = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results/'
 
 for simnum in range(len(Job_proc)):
+    start_time = time.time()
     parameters.parameter_coupling['parameter']['a'] = Job_proc[simnum][0]
     parameters.parameter_model['b_e'] = Job_proc[simnum][1]
     parameters.parameter_model['E_L_i'] = Job_proc[simnum][2]
@@ -196,9 +208,12 @@ for simnum in range(len(Job_proc)):
     # Finally, save the results.
     print(store_npy)
     filename = folder_root + label_sim[:-1] + '.npy'  # Indexing to get rid of / in label_sim
-    # Maybe too long a name, will it take extra space? Could be relevant, we only store a few values in the file.
-    # I don't see how we could give it a shorter, but different from all the others, name without communicating
     np.save(filename, np.array(store_npy))
+
+    # In order to manage simulation errors and problems that might arise during HPC computations, we save a .txt
+    # file that will indicate if the simulation of a combination of parameters has been completed correctly.
+    ind_filename = indicator_folder + label_sim[:-1] + 'COMPLETED.txt'
+    open(ind_filename, 'a').close()
 
     print(f'Time of analysis: {time.time() - sim_time}s')
     print(f'Total time: {time.time() - start_time}')
