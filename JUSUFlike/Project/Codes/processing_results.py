@@ -153,8 +153,8 @@ def find_closest_val(param_name, desired_value, steps):
     return sweep[idx]
 
 
-def metric_for_pairs(params_metric_array, name_metric,
-                     sweep_params, fixed_params, steps=2, do_plot=False, fig=None, ax=None):
+def metric_for_pairs(params_metric_array, name_metric, sweep_params, fixed_params,
+                     steps=2, do_plot=False, fig=None, ax=None, imshow_range=None):
     """Obtains the values of one metric when varying two of the five parameters while fixing the other three.
     One can select to also obtain an imshow of the matrix.
     The fixed parameters can be set to trivial values and the function will find the closest parameter values
@@ -185,6 +185,10 @@ def metric_for_pairs(params_metric_array, name_metric,
     
     ax: matplotlib.pyplot.axis object
         Axis object where we want to plot the imshow if do_plot
+
+    imshow_range: tuple
+        Containing (vmin, vmax) for the imshow. If none, set to (None, None) and the min and max of the matrix will be
+        used as the limits of the color range.
 
     Returns
     ----------
@@ -235,6 +239,8 @@ def metric_for_pairs(params_metric_array, name_metric,
     if do_plot:
         if type(ax) is None or type(fig) is None:
             raise ValueError("Please provide an ax AND figure object for the plot")
+        if imshow_range is None:
+            imshow_range = (None, None)
         else:
             # Make a nice title
             list_fix = [(fixed_param + ' = ' + str(closest_to_desired[fixed_param])) for fixed_param in fixed_params]
@@ -243,7 +249,7 @@ def metric_for_pairs(params_metric_array, name_metric,
                 title = name_metric + ' for ' + ', \n'.join(list_fix)
 
             # plot the image and manage the axis
-            im = ax.imshow(plot_matrix)
+            im = ax.imshow(plot_matrix, vmin=imshow_range[0], vmax=imshow_range[1])
             # We don't want too many ticks in our plot. See for definitive results if it works well.
             if steps > 8:
                 ax.set_xticks(range(0, steps, 2))
@@ -269,26 +275,29 @@ def metric_for_pairs(params_metric_array, name_metric,
         return plot_matrix
 
 
-def plot_multiple_metrics(metrics, results_folder, sweep_params, fixed_params, steps):
+def plot_multiple_metrics(metrics, results_folder, sweep_params, fixed_params, steps, imshow_ranges=None):
     """Returns a figure with the different imshows of the selected metrics.
 
     Parameters
     ----------
     metrics: list, tuple
         Contains the names of all the metrics for which we want to obtain an imshow panel.
-    
+
     results_folder: str
         Directory to where the function has to go look for the results of the parameter sweep.
 
     sweep_params: list, tuple
         Contains the two strings of the parameters for which we will observe the change in the metric value
-    
+
     fixed_params: dict
         Dictionary with strings and desired fixed values of other 3 parameters.
 
     steps: int
         Number of different values obtained for each parameter in the original Parameter Sweep in HPC.
 
+    imshow_ranges: list of tuples
+        Contains the range (vmin, vmax) of the imshow for each metric. If we want to let the range free for one metric,
+        we set (None, None) in its corresponding index in the list.
 
     Returns
     ----------
@@ -298,6 +307,12 @@ def plot_multiple_metrics(metrics, results_folder, sweep_params, fixed_params, s
     subplot_width = 6  # matplotlib units (I think inches)
     subplot_height = 6
     n_plots = len(metrics)
+
+    if imshow_ranges is None:
+        imshow_ranges = []
+        for i in range(n_plots):
+            imshow_ranges.append((None, None))
+
     if n_plots < 3:
         fig, axes = plt.subplots(1, n_plots, figsize=(n_plots * subplot_width, subplot_height))
         axes = axes.flatten()
@@ -322,8 +337,8 @@ def plot_multiple_metrics(metrics, results_folder, sweep_params, fixed_params, s
 
     for plot, metric in enumerate(metrics):
         params_metric = load_metric_sweeps(metric, results_folder, steps=steps)
-        mat, axes[plot] = metric_for_pairs(params_metric, metric, sweep_params, fixed_params,
-                                           steps=steps, do_plot=True, fig=fig, ax=axes[plot])
+        mat, axes[plot] = metric_for_pairs(params_metric, metric, sweep_params, fixed_params, steps=steps,
+                                           do_plot=True, fig=fig, ax=axes[plot], imshow_range=imshow_ranges[plot])
 
     fig.tight_layout()
     return fig
@@ -515,6 +530,7 @@ if __name__ == '__main__':
         steps = 2
         fig = plot_multiple_metrics(metrics, batches_folder, sweep_params, fixed_params, steps)
         plt.show()
+    
 
 
 # Comments on Cleaning the results, managing errors
