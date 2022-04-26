@@ -218,8 +218,10 @@ def metric_for_pairs(params_metric_array, name_metric, sweep_params, fixed_param
         if i == 0:
             bool_idxs = params_metric_array[:, fix_par_idx_in_arr] == closest_to_desired[fixed_param]
         else:
-            bool_idxs = (params_metric_array[:, fix_par_idx_in_arr] == closest_to_desired[fixed_param]) & bool_idxs
+            bool_idxs = np.logical_and(params_metric_array[:, fix_par_idx_in_arr] == closest_to_desired[fixed_param],
+                                       bool_idxs)
 
+    # print(fixed_params)
     # New array containing only those rows where the sweep_params change.
     new_array = params_metric_array[bool_idxs, :]
 
