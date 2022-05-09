@@ -1,0 +1,54 @@
+# Next simulations
+# coeff 1.3
+ELS_vals = ((-68, -60), (-72, -60), (-72, -64), (-76, -64), (-76, -72))
+b_list = np.linspace(0, 120, 6).tolist()
+
+ELS_A = [0, 1]
+T_list = [19, 26]
+a_list = [0.3, 0.4, 0.5]
+lst1 = [T_list, a_list, b_list, ELS_A]
+combinaison1 = list(itertools.product(*lst1))
+
+ELS_B = [2]
+a_list = [0.3, 0.4]
+lst2 = [T_list, a_list, b_list, ELS_B]
+combinaison2 = list(itertools.product(*lst2))
+
+ELS_C = [3]
+a_list = [0.2, 0.3]
+lst3 = [T_list, a_list, b_list, ELS_C]
+combinaison3 = list(itertools.product(*lst3))
+
+ELS_D = [4]
+a_list = [0.4]
+lst4 = [T_list[1], a_list, b_list, ELS_D]
+combinaison4 = list(itertools.product(*lst4))
+
+combinaison = combinaison1 + combinaison2 + combinaison3 + combinaison4 
+
+# coeff 1.6
+ELS_vals = ((-68, -60), (-76, -60), (-76, -64), (-80, -60))
+b_list = np.linspace(0, 120, 6).tolist()
+T_list = [19]
+
+ELS_A = [0]
+a_list = [0, 0.5]
+lst1 = [T_list, a_list, b_list, ELS_A]
+combinaison1 = list(itertools.product(*lst1))
+
+ELS_B = [1]
+a_list = [0, 0.4]
+lst2 = [T_list, a_list, b_list, ELS_B]
+combinaison2 = list(itertools.product(*lst2))
+
+ELS_C = [2]
+a_list = [0.4]
+lst3 = [T_list, a_list, b_list, ELS_C]
+combinaison3 = list(itertools.product(*lst3))
+
+ELS_D = [3]
+a_list = [0.1]
+lst4 = [T_list, a_list, b_list, ELS_D]
+combinaison4 = list(itertools.product(*lst4))
+
+combinaison = combinaison1 + combinaison2 + combinaison3 + combinaison4

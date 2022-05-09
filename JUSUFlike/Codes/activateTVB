@@ -1,0 +1,10 @@
+module use $OTHERSTAGES
+module load Stages/2020 
+module load GCC
+module load ParaStationMPI
+module load mpi4py
+module load SciPy-Stack
+module load scikit
+module load numba
+
+export PYTHONPATH=$PYTHONPATH:/p/project/icei-hbp-2022-0005/Codes/tvb-root/scientific_library/
