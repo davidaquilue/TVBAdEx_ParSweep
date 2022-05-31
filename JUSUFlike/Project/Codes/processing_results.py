@@ -55,7 +55,7 @@ def batch_files(results_folder, batches_folder, batch_size=100, n_cols=56, name_
     n_chunk: str
         In the case that only one batch is created per function call, we can assign a special name to it with this variable.
     """
-    files_in_folder = os.listdir(results_folder)  # Obtain a list with all the files. This might be very large in RAM!
+    files_in_folder = sorted(os.listdir(results_folder))  # Obtain a list with all the files.
     files = []
     for file_name in files_in_folder:
         if '.npy' in file_name:
@@ -91,7 +91,7 @@ def load_whole_sweep(results_folder, steps):
     """Loads the whole parameter sweep to memory."""
     warnings.warn("ATTENTION: This function will be too expensive with the whole parameter sweep")
     
-    files = os.listdir(results_folder)
+    files = sorted(os.listdir(results_folder))
 
     parameter_sweep = np.empty((steps ** 5, len(dict_params) + len(dict_metrics)))
 
@@ -131,7 +131,7 @@ def load_metric_sweeps(name_metric, results_folder, steps=16):
         metrics. Same order as the name_metric list in case that more than one metric is retrieved.
     """
 
-    files = os.listdir(results_folder)
+    files = sorted(os.listdir(results_folder))
     if type(name_metric) is str:
         metric_idx = dict_metrics[name_metric]
         pars_metric = np.empty((steps ** 5, 6))  # steps**5 rows, 5 params + 1 metric cols
@@ -179,7 +179,7 @@ def metric_for_pairs(params_metric_array, name_metric, sweep_params, fixed_param
     ----------
     params_metric_array: ndarray (steps**5, 6)
         Array containing all the values of the parameter sweep of the 5 parameters + 1 metric in the last column.
-    
+
     name_metric: str
         Name of the metric from which we want to obtain the matrix. It has to be included in dict_metrics
 
@@ -374,9 +374,6 @@ def plot_metric_3d(name_metric, sweep_params, fixed_params, results_folder,
 
     Parameters
     ----------
-    params_metric_array: ndarray (steps**5, 6)
-        Array containing all the values of the parameter sweep of the 5 parameters + 1 metric in the last column.
-
     name_metric: str
         Name of the metric from which we want to obtain the matrix. It has to be included in dict_metrics
 
@@ -507,9 +504,9 @@ def plot_metric_3d_cubic(name_metric, sweep_params, fixed_params, results_folder
     """
     # Managing errors
     if len(fixed_params.keys()) != 2:
-        raise ValueError("Three parameters must be fixed.")
+        raise ValueError("Two parameters must be fixed.")
     if len(sweep_params) != 3:
-        raise ValueError("Sweep can only be performed over two parameters.")
+        raise ValueError("Sweep can only be performed over three parameters.")
     if len([i for i in fixed_params.keys() if i in sweep_params]) != 0:
         raise ValueError("Sweep and Fixed parameters cannot coincide.")
     if 'E_L_e' in fixed_params and 'E_L_i' in fixed_params:
@@ -591,8 +588,8 @@ def plot_metric_3d_cubic(name_metric, sweep_params, fixed_params, results_folder
     ax.set(xlabel=sweep_params[0], ylabel=sweep_params[1], zlabel=sweep_params[2], title=title)
 
     # plt.tight_layout()
-    plt.show()
-
+    # plt.show()
+    return fig
 
 def plot_multiple_metrics(metrics, results_folder, sweep_params, fixed_params, steps, imshow_ranges=None):
     """Returns a figure with the different imshows of the selected metrics.
@@ -972,7 +969,7 @@ def make_movie_3d(metric, fixed_params, params_sweep_im, param_sweep_time, title
                                        results_folder, steps, imshow_range=imshow_range)
         else:
             raise ValueError("Input an adequate type of plot (type_plot='points' or 'cubic'")
-        fig.savefig(movie_folder + f'frame{frame}.png')
+        fig.savefig(movie_folder + f'frame{frame}.png')      
         plt.close()
 
     images = []
