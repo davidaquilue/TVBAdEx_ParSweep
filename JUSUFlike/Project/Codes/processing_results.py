@@ -130,17 +130,20 @@ def load_metric_sweeps(name_metric, results_folder, steps=16):
         parameter sweep. Columns 0 to 4 correspond to the parameters. Column 5 and onwards contain the values of the
         metrics. Same order as the name_metric list in case that more than one metric is retrieved.
     """
-
+    if steps == 16:
+        n_rows = 675840
+    else:
+        n_rows = steps ** 5
     files = sorted(os.listdir(results_folder))
     if type(name_metric) is str:
         metric_idx = dict_metrics[name_metric]
-        pars_metric = np.empty((steps ** 5, 6))  # steps**5 rows, 5 params + 1 metric cols
+        pars_metric = np.empty((n_rows, 6))  # steps**5 rows, 5 params + 1 metric cols
 
     elif type(name_metric) is list:
         metric_idx = []
         for name in name_metric:
             metric_idx.append(dict_metrics[name])
-        pars_metric = np.empty((steps ** 5, 5 + len(name_metric)))  # steps**5 rows, 5 params + N metric cols
+        pars_metric = np.empty((n_rows, 5 + len(name_metric)))  # steps**5 rows, 5 params + N metric cols
     else:
         raise ValueError("Invalid name_metric type")
 
