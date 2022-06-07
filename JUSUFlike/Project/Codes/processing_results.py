@@ -18,6 +18,12 @@ neglect_silence = True
 
 dict_params = {'a': 0, 'b_e': 1, 'E_L_i': 2, 'E_L_e': 3, 'T': 4}
 
+dict_labels = {'a': '$S$', 'b_e': '$b_e$ (pA)', 'E_L_i': '$E_{L,i}$ (mV)', 'E_L_e': '$E_{L,e}$ (mV)', 'T': '$T$ (ms)'}
+
+dict_param_names = {'a': '$S$', 'b_e': '$b_e$', 'E_L_i': '$E_{L,i}$', 'E_L_e': '$E_{L,e}$', 'T': '$T$'}
+
+dict_units = {'a': '', 'b_e': '(pA)', 'E_L_i': '(mV)', 'E_L_e': '(mV)', 'T': '(ms)'}
+
 ranges_params = {'a': (0, 0.5), 'b_e': (0, 120), 'E_L_e': (-80, -60), 'E_L_i': (-80, -60), 'T': (5, 40)}
 
 dict_metrics = {'mean_FR_e': 5, 'mean_FR_i': 23, 'std_FR_e': 6, 'std_FR_i': 24,
@@ -34,6 +40,31 @@ dict_metrics = {'mean_FR_e': 5, 'mean_FR_i': 23, 'std_FR_e': 6, 'std_FR_i': 24,
                 'corr_FC_tract_e': 48, 'corr_FC_tract_i': 49, 'coeff_var_e': 50, 'coeff_var_i':51,
                 'std_of_means_e': 52, 'std_of_means_i': 53, 'means_of_std_e':54, 'means_of_std_i': 55}
 
+dict_figures = {'mean_FR_e': 'Mean $\\nu_e$', 'mean_FR_i': 'Mean $\\nu_i$', 
+'std_FR_e': 'SD of $\\nu_e$', 'std_FR_i': 'SD of $\\nu_e$',
+'mean_FC_e': 'Mean $FC_e$', 'mean_FC_i': 'Mean $FC_i$', 'mean_PLI_e': 'Mean $PLI_e$', 'mean_PLI_i': 'Mean $PLI_i$',
+'mean_up_e': 'Mean duration of Up states in $\\nu_e$', 'mean_up_i': 'Mean duration of Up states in $\\nu_i$', 
+'mean_down_e': 'Mean duration of Down states in $\\nu_e$', 'mean_down_i': 'Mean duration of Down states in $\\nu_i$',
+'max_FR_e': 'Maximum $\\nu_e$', 'max_FR_i': 'Maximum $\\nu_i$', 
+'fmax_amp_e': 'Frequency at peak in $PSD_e$', 'pmax_amp_e': 'Power at peak in $PSD_e$',
+'fmax_amp_i': 'Frequency at peak in $PSD_i$', 'pmax_amp_i': 'Power at peak in $PSD_i$', 
+'fmax_prom_e': 'Frequency at peak in $PSD_e$', 'pmax_prom_e': 'Power at peak in $PSD_e$',
+'fmax_prom_i': 'Frequency at peak in $PSD_i$', 'pmax_prom_i': 'Power at peak in $PSD_i$', 
+'slope_PSD_e': 'Power Law of $PSD_e$', 'score_PSD_e': 'Score of Power Law of $PSD_e$',
+'slope_PSD_i': 'Power Law of $PSD_i$', 'score_PSD_i': 'Score of Power Law of $PSD_e$', 
+'delta_rel_p_e': 'Relative power of $PSD_e$ in $\\delta$ band', 
+'theta_rel_p_e': 'Relative power of $PSD_e$ in $\\theta$ band',
+'alpha_rel_p_e': 'Relative power of $PSD_e$ in $\\alpha$ band', 
+'beta_rel_p_e': 'Relative power of $PSD_e$ in $\\beta$ band', 
+'gamma_rel_p_e': 'Relative power of $PSD_e$ in $\\gamma$ band', 
+'delta_rel_p_i': 36,  # I will ignore the inhibitory part. Flemme
+'theta_rel_p_i': 37, 'alpha_rel_p_i': 38, 'beta_rel_p_i': 39, 'gamma_rel_p_i': 40,
+'ratio_frmean_dmn_exc': 41, 'ratio_zscore_dmn_exc': 42, 'ratio_frmean_dmn_inh': 43,
+'ratio_zscore_dmn_inh': 44, 'ratio_AI_exc': 45, 
+'corr_FC_SC_e': 'Correlation between $FC_e$ and $C_{j,k}$', 'corr_FC_SC_i': 47,
+'corr_FC_tract_e': 48, 'corr_FC_tract_i': 49, 'coeff_var_e': 50, 'coeff_var_i':51,
+'std_of_means_e': 52, 'std_of_means_i': 53, 
+'means_of_std_e': 'Mean of SD of $\\nu_e$', 'means_of_std_i': 'Mean of SD of $\\nu_i$'}
 
 def batch_files(results_folder, batches_folder, batch_size=100, n_cols=56, name_batch='0'):
     """Function that will merge the multiple .npy files in the results' folder into less, larger, .npy files.
@@ -444,19 +475,22 @@ def plot_metric_3d(name_metric, sweep_params, fixed_params, results_folder,
     fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(111, projection='3d')
     # Make a nice title
-    list_fix = [(fixed_param + ' = ' + str(closest_to_desired[fixed_param])) for fixed_param in fixed_params]
-    title = name_metric + ' for ' + ', '.join(list_fix)
+    list_fix = [(dict_param_names[fixed_param] + ' = ' + str(closest_to_desired[fixed_param]) + ' ' + \
+        dict_units[fixed_param]) for fixed_param in fixed_params]
+    title = dict_figures[name_metric] + ' for ' + ', '.join(list_fix)
+
     if len(title) > 40:
-        title = name_metric + ' for ' + ', \n'.join(list_fix)
+        title = dict_figures[name_metric] + ' for ' + ', \n'.join(list_fix)
     if type(imshow_range) is type(None):
         imshow_range = (None, None)
     # plot the image and manage the axis
-    img = ax.scatter(x_arr, y_arr, z_arr, c=c_arr, cmap=plt.viridis(), vmin=imshow_range[0], vmax=imshow_range[1])
+    img = ax.scatter(x_arr, y_arr, z_arr, c=c_arr, cmap=plt.plasma(), vmin=imshow_range[0], vmax=imshow_range[1])
+    ax.set(xlabel=dict_labels[sweep_params[0]], ylabel=dict_labels[sweep_params[1]],
+    zlabel=dict_labels[sweep_params[2]], title=title)
 
-    ax.set(xlabel=sweep_params[0], ylabel=sweep_params[1], zlabel=sweep_params[2], title=title)
 
     plt.tight_layout()
-    fig.colorbar(img)
+    fig.colorbar(img, pad=0.1)
 
     return fig
 
