@@ -22,7 +22,7 @@ dict_labels = {'a': '$S$', 'b_e': '$b_e$ (pA)', 'E_L_i': '$E_{L,i}$ (mV)', 'E_L_
 
 dict_param_names = {'a': '$S$', 'b_e': '$b_e$', 'E_L_i': '$E_{L,i}$', 'E_L_e': '$E_{L,e}$', 'T': '$T$'}
 
-dict_units = {'a': '', 'b_e': '(pA)', 'E_L_i': '(mV)', 'E_L_e': '(mV)', 'T': '(ms)'}
+dict_units = {'a': '', 'b_e': 'pA', 'E_L_i': 'mV', 'E_L_e': 'mV', 'T': 'ms'}
 
 ranges_params = {'a': (0, 0.5), 'b_e': (0, 120), 'E_L_e': (-80, -60), 'E_L_i': (-80, -60), 'T': (5, 40)}
 
@@ -40,16 +40,16 @@ dict_metrics = {'mean_FR_e': 5, 'mean_FR_i': 23, 'std_FR_e': 6, 'std_FR_i': 24,
                 'corr_FC_tract_e': 48, 'corr_FC_tract_i': 49, 'coeff_var_e': 50, 'coeff_var_i':51,
                 'std_of_means_e': 52, 'std_of_means_i': 53, 'means_of_std_e':54, 'means_of_std_i': 55}
 
-dict_figures = {'mean_FR_e': 'Mean $\\nu_e$', 'mean_FR_i': 'Mean $\\nu_i$', 
-'std_FR_e': 'SD of $\\nu_e$', 'std_FR_i': 'SD of $\\nu_e$',
+dict_figures = {'mean_FR_e': 'Mean $\\nu_e$ (Hz)', 'mean_FR_i': 'Mean $\\nu_i$ (Hz)', 
+'std_FR_e': 'SD of $\\nu_e$ (Hz)', 'std_FR_i': 'SD of $\\nu_e$ (Hz)',
 'mean_FC_e': 'Mean $FC_e$', 'mean_FC_i': 'Mean $FC_i$', 'mean_PLI_e': 'Mean $PLI_e$', 'mean_PLI_i': 'Mean $PLI_i$',
-'mean_up_e': 'Mean duration of Up states in $\\nu_e$', 'mean_up_i': 'Mean duration of Up states in $\\nu_i$', 
-'mean_down_e': 'Mean duration of Down states in $\\nu_e$', 'mean_down_i': 'Mean duration of Down states in $\\nu_i$',
-'max_FR_e': 'Maximum $\\nu_e$', 'max_FR_i': 'Maximum $\\nu_i$', 
-'fmax_amp_e': 'Frequency at peak in $PSD_e$', 'pmax_amp_e': 'Power at peak in $PSD_e$',
-'fmax_amp_i': 'Frequency at peak in $PSD_i$', 'pmax_amp_i': 'Power at peak in $PSD_i$', 
-'fmax_prom_e': 'Frequency at peak in $PSD_e$', 'pmax_prom_e': 'Power at peak in $PSD_e$',
-'fmax_prom_i': 'Frequency at peak in $PSD_i$', 'pmax_prom_i': 'Power at peak in $PSD_i$', 
+'mean_up_e': 'Mean duration of Up states of $\\nu_e$ (s)\n', 'mean_up_i': 'Mean duration of Up states of $\\nu_i$ (s)\n', 
+'mean_down_e': 'Mean duration of Down states of $\\nu_e$ (s)\n', 'mean_down_i': 'Mean duration of Down states of $\\nu_i$ (s)\n',
+'max_FR_e': 'Max $\\nu_e$', 'max_FR_i': 'Max $\\nu_i$', 
+'fmax_amp_e': 'Frequency at peak in $PSD_e$ (Hz)\n', 'pmax_amp_e': 'Power at peak in $PSD_e$',
+'fmax_amp_i': 'Frequency at peak in $PSD_i$ (Hz)\n', 'pmax_amp_i': 'Power at peak in $PSD_i$', 
+'fmax_prom_e': 'Frequency at peak in $PSD_e$ (Hz)\n', 'pmax_prom_e': 'Power at peak in $PSD_e$',
+'fmax_prom_i': 'Frequency at peak in $PSD_i$ (Hz)\n', 'pmax_prom_i': 'Power at peak in $PSD_i$', 
 'slope_PSD_e': 'Power Law of $PSD_e$', 'score_PSD_e': 'Score of Power Law of $PSD_e$',
 'slope_PSD_i': 'Power Law of $PSD_i$', 'score_PSD_i': 'Score of Power Law of $PSD_e$', 
 'delta_rel_p_e': 'Relative power of $PSD_e$ in $\\delta$ band', 
@@ -480,13 +480,20 @@ def plot_metric_3d(name_metric, sweep_params, fixed_params, results_folder,
     title = dict_figures[name_metric] + ' for ' + ', '.join(list_fix)
 
     if len(title) > 40:
-        title = dict_figures[name_metric] + ' for ' + ', \n'.join(list_fix)
+        if 'mean_up' in name_metric or 'mean_down' in name_metric:
+            just_skip = 0
+        elif 'fmax' in name_metric:
+            just_skip = 0
+        else:
+            title = dict_figures[name_metric] + ' for ' + ', \n'.join(list_fix)
     if type(imshow_range) is type(None):
         imshow_range = (None, None)
     # plot the image and manage the axis
     img = ax.scatter(x_arr, y_arr, z_arr, c=c_arr, cmap=plt.plasma(), vmin=imshow_range[0], vmax=imshow_range[1])
-    ax.set(xlabel=dict_labels[sweep_params[0]], ylabel=dict_labels[sweep_params[1]],
-    zlabel=dict_labels[sweep_params[2]], title=title)
+    ax.set_xlabel(dict_labels[sweep_params[0]], labelpad=8)
+    ax.set_ylabel(dict_labels[sweep_params[1]], labelpad=8)
+    ax.set_zlabel(dict_labels[sweep_params[2]], labelpad=8)
+    ax.set_title(title)
 
 
     plt.tight_layout()
