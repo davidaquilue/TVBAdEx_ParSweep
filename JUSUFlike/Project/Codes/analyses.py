@@ -27,8 +27,12 @@ def mean_FC(FR, do_plot=False):
     FC = np.corrcoef(np.transpose(FR))
     FC_mean = np.mean(FC) - np.trace(FC) / FC.size  # Delete the relevance of the diagonal elements.
     if do_plot:
-        plt.imshow(FC)
-        plt.title('FC matrix')
+        im = plt.imshow(FC)
+        plt.title('$FC$ matrix')
+        plt.xlabel('Nodes')
+        plt.ylabel('Nodes')
+        plt.colorbar(im)
+        plt.tight_layout()
         plt.show()
         plt.close()
     return FC_mean
@@ -54,8 +58,12 @@ def mean_PLI(FR, do_plot=False):
 
     PLI_mean = np.mean(PLI) - np.trace(PLI) / PLI.size  # Not interested about the contribution of diagonal elements
     if do_plot:
-        plt.imshow(PLI)
-        plt.title('PLI matrix')
+        im = plt.imshow(PLI)
+        plt.title('$PLI$ matrix')
+        plt.xlabel('Nodes')
+        plt.ylabel('Nodes')
+        plt.colorbar(im)
+        plt.tight_layout()
         plt.show()
         plt.close()
     return PLI_mean
@@ -700,7 +708,7 @@ def rel_power_bands(frq, psd, bands=None, do_plot=False):
     total_power = simps(psd, dx=freq_res)
 
     if do_plot:
-        fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
         ax.set(xlim=(0.4, 200), xlabel='Frequency (Hz)', ylabel='Power spectral density')
         color = iter(cm.rainbow(np.linspace(0, 1, len(bands))))
         ax.loglog(frq, psd, 'k')
@@ -713,10 +721,11 @@ def rel_power_bands(frq, psd, bands=None, do_plot=False):
 
         if do_plot:
             c = next(color)
-            plt.fill_between(frq, psd, where=idx_band, color=c, alpha=0.5, label=band)
+            plt.fill_between(frq, psd, where=idx_band, color=c, alpha=0.5, label='$\\'+band+'$')
     if do_plot:
         plt.title('Relative power for bands')
-        plt.legend()
+        plt.legend(loc=(1.04,0))
+        plt.tight_layout()
         plt.show()
         plt.close()
     return rel_powers
