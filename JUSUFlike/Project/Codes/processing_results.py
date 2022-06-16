@@ -45,7 +45,7 @@ dict_figures = {'mean_FR_e': 'Mean $\\nu_e$ (Hz)', 'mean_FR_i': 'Mean $\\nu_i$ (
 'mean_FC_e': 'Mean $FC_e$', 'mean_FC_i': 'Mean $FC_i$', 'mean_PLI_e': 'Mean $PLI_e$', 'mean_PLI_i': 'Mean $PLI_i$',
 'mean_up_e': 'Mean duration of Up states of $\\nu_e$ (s)\n', 'mean_up_i': 'Mean duration of Up states of $\\nu_i$ (s)\n', 
 'mean_down_e': 'Mean duration of Down states of $\\nu_e$ (s)\n', 'mean_down_i': 'Mean duration of Down states of $\\nu_i$ (s)\n',
-'max_FR_e': 'Max $\\nu_e$', 'max_FR_i': 'Max $\\nu_i$', 
+'max_FR_e': 'Max $\\nu_e$ (Hz)', 'max_FR_i': 'Max $\\nu_i$ (Hz)', 
 'fmax_amp_e': 'Frequency at peak in $PSD_e$ (Hz)\n', 'pmax_amp_e': 'Power at peak in $PSD_e$',
 'fmax_amp_i': 'Frequency at peak in $PSD_i$ (Hz)\n', 'pmax_amp_i': 'Power at peak in $PSD_i$', 
 'fmax_prom_e': 'Frequency at peak in $PSD_e$ (Hz)\n', 'pmax_prom_e': 'Power at peak in $PSD_e$',
@@ -64,7 +64,7 @@ dict_figures = {'mean_FR_e': 'Mean $\\nu_e$ (Hz)', 'mean_FR_i': 'Mean $\\nu_i$ (
 'corr_FC_SC_e': 'Correlation between $FC_e$ and $C_{j,k}$', 'corr_FC_SC_i': 47,
 'corr_FC_tract_e': 48, 'corr_FC_tract_i': 49, 'coeff_var_e': 50, 'coeff_var_i':51,
 'std_of_means_e': 52, 'std_of_means_i': 53, 
-'means_of_std_e': 'Mean of SD of $\\nu_e$', 'means_of_std_i': 'Mean of SD of $\\nu_i$'}
+'means_of_std_e': 'Mean of SD of $\\nu_e$ (Hz)', 'means_of_std_i': 'Mean of SD of $\\nu_i$ (Hz)'}
 
 def batch_files(results_folder, batches_folder, batch_size=100, n_cols=56, name_batch='0'):
     """Function that will merge the multiple .npy files in the results' folder into less, larger, .npy files.
@@ -493,6 +493,111 @@ def plot_metric_3d(name_metric, sweep_params, fixed_params, results_folder,
     ax.set_xlabel(dict_labels[sweep_params[0]], labelpad=8)
     ax.set_ylabel(dict_labels[sweep_params[1]], labelpad=8)
     ax.set_zlabel(dict_labels[sweep_params[2]], labelpad=8)
+    ax.set_title(title)
+
+
+    plt.tight_layout()
+    fig.colorbar(img, pad=0.1)
+
+    return fig
+
+def plot_metric_3d_diagonalELs(name_metric, sweep_params, fixed_params, results_folder,
+                   steps=16, fig=None, ax=None, imshow_range=None, diagonalELs=False):
+    """Returns a 3d figure of the values of the name_metric for the parameter space when fixing two values and letting
+    the other three explore all their range. In this case, each point in the figure is a colored point.
+
+    Parameters  
+    ----------
+    name_metric: str
+        Name of the metric from which we want to obtain the matrix. It has to be included in dict_metrics
+
+    sweep_params: list, tuple
+        Contains the two strings of the parameters for which we will observe the change in the metric value
+
+    fixed_params: dict
+        Dictionary with strings and desired fixed values of other 3 parameters.
+
+    steps: int
+        Number of different values obtained for each parameter in the original Parameter Sweep in HPC.
+
+    do_plot: bool
+        Whether return an ax with the imshow plotted.
+
+    fig: matplotlib.pyplot.figure object
+        Figure in which we want to plot the imshow if do_plot
+
+    ax: matplotlib.pyplot.axis object
+        Axis object where we want to plot the imshow if do_plot
+
+    imshow_range: tuple
+        Containing (vmin, vmax) for the imshow. If none, set to (None, None) and the min and max of the matrix will be
+        used as the limits of the color range.
+
+    Returns
+    I guess I could return the 3d array (x, y, z) and the color array
+    ----------
+    mat: ndarray
+        Array of shape (steps, steps) containing values of desired metric when changing parameters in sweep_params.
+
+     ax: matplotlib.pyplot.axis object
+        Axis object where with the imshow plotted if do_plot
+    """
+    # Managing errors
+    if len(fixed_params.keys()) != 1:
+        raise ValueError("One parameters must be fixed.")
+    if len(sweep_params) != 3:
+        raise ValueError("Sweep can only be performed over three parameters.")
+    if len([i for i in fixed_params.keys() if i in sweep_params]) != 0:
+        raise ValueError("Sweep and Fixed parameters cannot coincide.")
+    if 'E_L_e' in fixed_params and 'E_L_i' in fixed_params:
+        if not fixed_params['E_L_e'] > fixed_params['E_L_i'] - thresh_silence:
+            raise ValueError(f"Fixed parameters not computed, remember that E_L_e > E_L_i - {thresh_silence}")
+    closest_to_desired = {}  # A dictionary containing {fixed_parameter_key: closest_value in sweep}
+    for fixed_param in fixed_params:
+        desired_value = fixed_params[fixed_param]
+        closest_to_desired[fixed_param] = find_closest_val(fixed_param, desired_value, steps)
+
+    params_metric_array = load_metric_sweeps(name_metric, results_folder, steps=steps)
+    for i, fixed_param in enumerate(fixed_params):  # Obtain the indexes of those rows that contain the fixed params.
+        fix_par_idx_in_arr = dict_params[fixed_param]
+        if i == 0:
+            bool_idxs = params_metric_array[:, fix_par_idx_in_arr] == closest_to_desired[fixed_param]
+        else:
+            bool_idxs = (params_metric_array[:, fix_par_idx_in_arr] == closest_to_desired[fixed_param]) & bool_idxs
+
+    if diagonalELs:
+        bool_idxs = (params_metric_array[:, dict_params['E_L_e']] == params_metric_array[:, dict_params['E_L_i']]) & bool_idxs
+
+    # New array containing only those rows where the sweep_params change.
+    new_array = params_metric_array[bool_idxs, :]
+    x_arr = new_array[:, dict_params[sweep_params[0]]]
+    y_arr = new_array[:, dict_params[sweep_params[1]]]
+    z_arr = new_array[:, dict_params[sweep_params[2]]]
+    c_arr = new_array[:, -1]
+
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+    # Make a nice title
+    list_fix = [(dict_param_names[fixed_param] + ' = ' + str(closest_to_desired[fixed_param]) + ' ' + \
+        dict_units[fixed_param]) for fixed_param in fixed_params]
+    title = dict_figures[name_metric] + ' for ' + ', '.join(list_fix)
+
+    if len(title) > 40:
+        if 'mean_up' in name_metric or 'mean_down' in name_metric:
+            just_skip = 0
+        elif 'fmax' in name_metric:
+            just_skip = 0
+        else:
+            title = dict_figures[name_metric] + ' for ' + ', \n'.join(list_fix)
+    if type(imshow_range) is type(None):
+        imshow_range = (None, None)
+    # plot the image and manage the axis
+    dict_labels_diag = {'a': '$S$', 'b_e': '$b_e$ (pA)', 'E_L_i': '$E_{L}$ (mV)', 
+                        'E_L_e': '$E_{L}$ (mV)', 'T': '$T$ (ms)'}
+    img = ax.scatter(x_arr, y_arr, z_arr, c=c_arr, cmap=plt.plasma(), vmin=imshow_range[0], vmax=imshow_range[1])
+    ax.set_xlabel(dict_labels_diag[sweep_params[0]], labelpad=8)
+    ax.set_ylabel(dict_labels_diag[sweep_params[1]], labelpad=8)
+    ax.set_zlabel(dict_labels_diag[sweep_params[2]], labelpad=8)
     ax.set_title(title)
 
 
