@@ -4,7 +4,7 @@ import itertools
 import random
 import numpy as np
 import tvb_model_reference.src.nuu_tools_simulation_human as tools
-import tqdm
+from tqdm import tqdm
 
 from mpi4py import MPI
 from tvb_model_reference.simulation_file.parameter.parameter_M_Berlin import Parameter
@@ -17,31 +17,31 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 # To run the script with 3 cores type in terminal: mpiexec -n 3 python3 script.py
-ELS_vals = ((-68, -60), (-72, -60), (-72, -64), (-76, -64), (-76, -72))
-b_list = np.linspace(0, 120, 6).tolist()
+ELS_vals = [[-64, -64]]
+b_list = [0]
 
-ELS_A = [0, 1]
-T_list = [19, 26]
-a_list = [0.3, 0.4, 0.5]
+ELS_A = [0]
+T_list = [19]
+a_list = [0.2, 0.4, 0.5]
 lst1 = [T_list, a_list, b_list, ELS_A]
 combinaison1 = list(itertools.product(*lst1))
 
-ELS_B = [2]
-a_list = [0.3, 0.4]
-lst2 = [T_list, a_list, b_list, ELS_B]
-combinaison2 = list(itertools.product(*lst2))
+#ELS_B = [2]
+#a_list = [0.3, 0.4]
+#lst2 = [T_list, a_list, b_list, ELS_B]
+#combinaison2 = list(itertools.product(*lst2))
 
-ELS_C = [3]
-a_list = [0.2, 0.3]
-lst3 = [T_list, a_list, b_list, ELS_C]
-combinaison3 = list(itertools.product(*lst3))
+#ELS_C = [3]
+#a_list = [0.2, 0.3]
+#lst3 = [T_list, a_list, b_list, ELS_C]
+#combinaison3 = list(itertools.product(*lst3))
 
-ELS_D = [4]
-a_list = [0.4]
-lst4 = [T_list[1], a_list, b_list, ELS_D]
-combinaison4 = list(itertools.product(*lst4))
+#ELS_D = [4]
+#a_list = [0.4]
+#lst4 = [T_list[1], a_list, b_list, ELS_D]
+#combinaison4 = list(itertools.product(*lst4))
 
-combinaison = combinaison1 + combinaison2 + combinaison3 + combinaison4
+combinaison = combinaison1 #+ combinaison2 + combinaison3 + combinaison4
 
 
 L = len(combinaison)
@@ -62,7 +62,7 @@ cut_transient = 2000.0  # ms, length of the discarded initial segment
 Iext = 0.000315  # External input
 
 # Define a location to save the files
-folder_root = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results_for_plotting/coeff_inh1.3/'
+folder_root = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results_for_plotting/coeff_inh1/'
 
 for simnum in tqdm(range(len(Job_proc))):
 
