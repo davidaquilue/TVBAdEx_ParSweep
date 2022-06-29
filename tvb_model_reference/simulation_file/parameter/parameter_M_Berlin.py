@@ -48,7 +48,7 @@ class Parameter :
             'K_ext_i':0,
             #Initial condition :
             'initial_condition':{
-                "E": [0.000, 0.000],"I": [0.00, 0.00],"C_ee": [0.0,0.0],"C_ei": [0.0,0.0],"C_ii": [0.0,0.0],"W_e": [100.0, 100.0],"W_i": [0.0,0.0],"noise":[0.0,0.0]}
+                "E": [0.000, 0.000],"I": [0.00, 0.00],"C_ee": [0.0,0.0],"C_ei": [0.0,0.0],"C_ii": [0.0,0.0],"W_e": [0.0, 100.0],"W_i": [0.0,0.0],"noise":[0.0,0.0]}
         }
 
         self.parameter_connection_between_region={
