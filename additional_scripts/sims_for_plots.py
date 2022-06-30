@@ -17,12 +17,12 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 # To run the script with 3 cores type in terminal: mpiexec -n 3 python3 script.py
-ELS_vals = [[-64, -64]]
+ELS_vals = [[-78.667, -78.667]]
 b_list = [0]
 
 ELS_A = [0]
-T_list = [19]
-a_list = [0.2, 0.4, 0.5]
+T_list = [19, 40]
+a_list = [0, 0.1, 0.25, 0.5]
 lst1 = [T_list, a_list, b_list, ELS_A]
 combinaison1 = list(itertools.product(*lst1))
 
@@ -80,6 +80,7 @@ for simnum in tqdm(range(len(Job_proc))):
 
     parameters.parameter_model['external_input_ex_ex'] = Iext
     parameters.parameter_model['external_input_in_ex'] = Iext
+    parameters.parameter_model['initial_condition']['W_e'] = [0, 0]
 
     label_sim = '_a_' + str(a) + '_b_' + str(b) + '_ELI_' + \
                 str(E_L_i) + '_ELE_' + str(E_L_e) + '_T_' + str(T) + '/'
