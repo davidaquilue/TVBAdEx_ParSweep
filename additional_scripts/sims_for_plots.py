@@ -17,12 +17,12 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 # To run the script with 3 cores type in terminal: mpiexec -n 3 python3 script.py
-ELS_vals = [[-78.667, -78.667]]
-b_list = [0]
+ELS_vals = [[-64, -60]]
+b_list = [0, 60, 80, 100]
 
 ELS_A = [0]
-T_list = [19, 40]
-a_list = [0, 0.1, 0.25, 0.5]
+T_list = [19]
+a_list = [0.2]
 lst1 = [T_list, a_list, b_list, ELS_A]
 combinaison1 = list(itertools.product(*lst1))
 
