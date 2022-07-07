@@ -43,11 +43,11 @@ size = comm.Get_size()
 
 #combinaison = combinaison1 #+ combinaison2 + combinaison3 + combinaison4
 
-T_list = [5.0, 40.0]
-a_list = [0.0, 0.5]
-b_list = [0.0, 120.0]
-ELI_list = [-80.0, -60.0]
-ELE_list = [-80.0, -60.0]
+T_list = [40] #[5.0, 40.0]
+a_list = [0] #[0.0, 0.5]
+b_list = [120] #[0.0, 120.0]
+ELI_list = [-80] #[-80.0, -60.0]
+ELE_list = [-80] #[-80.0, -60.0]
 lst = [T_list, a_list, b_list, ELI_list, ELE_list]
 
 combinaison = list(itertools.product(*lst))
@@ -71,7 +71,7 @@ Iext = 0.000315  # External input
 
 # Define a location to save the files
 # TODO Change this to save them in another folder
-folder_root = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results_for_plotting/coeff_inh1/'
+folder_root = '/media/master/Nuevo vol/Internship/Data/new_connectome_BOLD/'
 
 for simnum in tqdm(range(len(Job_proc))):
 
@@ -90,7 +90,7 @@ for simnum in tqdm(range(len(Job_proc))):
     parameters.parameter_model['E_L_e'] = E_L_e
 
     # We change the connectome
-    parameters.parameter_connection_between_region['path'] = './tvb_model_reference/data/DH_20120806/'
+    parameters.parameter_connection_between_region['path'] = '/home/master/Desktop/tests_hpc/more_connectomes/tvb_model_reference/data/DH_20120806'
 
     parameters.parameter_model['external_input_ex_ex'] = Iext
     parameters.parameter_model['external_input_in_ex'] = Iext
@@ -99,7 +99,7 @@ for simnum in tqdm(range(len(Job_proc))):
     label_sim = '_a_' + str(a) + '_b_' + str(b) + '_ELI_' + \
                 str(E_L_i) + '_ELE_' + str(E_L_e) + '_T_' + str(T) + '/'
 
-    file_name = folder_root + f'ELI_{E_L_i}_ELE_{E_L_e}/' + label_sim
+    file_name = folder_root + label_sim
     parameters.parameter_simulation['path_result'] = file_name
 
     # Set up simulator with new parameters

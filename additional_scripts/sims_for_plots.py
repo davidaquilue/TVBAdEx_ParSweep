@@ -17,31 +17,32 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 # To run the script with 3 cores type in terminal: mpiexec -n 3 python3 script.py
-ELS_vals = [[-64, -60]]
-b_list = [0, 60, 80, 100]
+ELS_vals = [[-64, -64], [-78.667, -80]]
+b_list = [0, 40, 80, 120]
 
 ELS_A = [0]
-T_list = [19]
-a_list = [0.2]
+T_list = [19, 26]
+a_list = [0.4]
 lst1 = [T_list, a_list, b_list, ELS_A]
 combinaison1 = list(itertools.product(*lst1))
 
-#ELS_B = [2]
-#a_list = [0.3, 0.4]
-#lst2 = [T_list, a_list, b_list, ELS_B]
-#combinaison2 = list(itertools.product(*lst2))
+ELS_B = [1]
+T_list = [19]
+a_list = [0.5]
+lst2 = [T_list, a_list, b_list, ELS_B]
+combinaison2 = list(itertools.product(*lst2))
 
-#ELS_C = [3]
-#a_list = [0.2, 0.3]
-#lst3 = [T_list, a_list, b_list, ELS_C]
-#combinaison3 = list(itertools.product(*lst3))
+# ELS_C = [3]
+# a_list = [0.2, 0.3]
+# lst3 = [T_list, a_list, b_list, ELS_C]
+# combinaison3 = list(itertools.product(*lst3))
 
 #ELS_D = [4]
 #a_list = [0.4]
 #lst4 = [T_list[1], a_list, b_list, ELS_D]
 #combinaison4 = list(itertools.product(*lst4))
 
-combinaison = combinaison1 #+ combinaison2 + combinaison3 + combinaison4
+combinaison = combinaison1 + combinaison2 #+ combinaison3 + combinaison4
 
 
 L = len(combinaison)
@@ -62,7 +63,7 @@ cut_transient = 2000.0  # ms, length of the discarded initial segment
 Iext = 0.000315  # External input
 
 # Define a location to save the files
-folder_root = '/media/master/Nuevo vol/Internship/Data/hpc_tvbadex/results_for_plotting/coeff_inh1/'
+folder_root = '/media/master/Nuevo vol/Internship/Data/inf_speed/speed1e16/'
 
 for simnum in tqdm(range(len(Job_proc))):
 
@@ -80,12 +81,21 @@ for simnum in tqdm(range(len(Job_proc))):
 
     parameters.parameter_model['external_input_ex_ex'] = Iext
     parameters.parameter_model['external_input_in_ex'] = Iext
-    parameters.parameter_model['initial_condition']['W_e'] = [0, 0]
+    parameters.parameter_model['initial_condition']['W_e'] = [100, 0]
 
-    label_sim = '_a_' + str(a) + '_b_' + str(b) + '_ELI_' + \
-                str(E_L_i) + '_ELE_' + str(E_L_e) + '_T_' + str(T) + '/'
+    # CHANGES DONE FOR THE AXON SPEED STUDY
+    parameters.parameter_connection_between_region['speed'] = 1e16
+    # I will use this one now since I want to sweep over bs
+    label_sim = '_a_' + str(a) + '_ELI_' + \
+                str(E_L_i) + '_ELE_' + str(E_L_e) + '_T_' + str(T) + '_b_' + str(b) + '/'
+    file_name = folder_root + label_sim
 
-    file_name = folder_root + f'ELI_{E_L_i}_ELE_{E_L_e}/' + label_sim
+    # END OF CHANGES DONE FOR THE AXON SPEED STUDY
+
+    # label_sim = '_a_' + str(a) + '_b_' + str(b) + '_ELI_' + \
+    #            str(E_L_i) + '_ELE_' + str(E_L_e) + '_T_' + str(T) + '/'
+
+    # file_name = folder_root + f'ELI_{E_L_i}_ELE_{E_L_e}/' + label_sim
     parameters.parameter_simulation['path_result'] = file_name
 
     # Set up simulator with new parameters
