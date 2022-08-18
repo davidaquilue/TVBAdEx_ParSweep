@@ -3,13 +3,15 @@
 import os
 import imageio
 import warnings
+import itertools
+
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-#rom generate_data_chunks import thresh_silence, neglect_silence
+# from generate_data_chunks import thresh_silence, neglect_silence
 
 # This should be imported from generate_data_chunks but does not seem to work well with jupyter notebook.
 # Remember to change this if it is ever changed in generate_data_chunk
@@ -1163,6 +1165,38 @@ if __name__ == '__main__':
         steps = 2
         fig = plot_multiple_metrics(metrics, batches_folder, sweep_params, fixed_params, steps)
         plt.show()
+
+
+# To plot the histograms by pairs from the corrFCSC analyses
+def histogram_pairs_states(labels_FC, labels_FCSC, n_clusters, ax, palette):
+    states = np.arange(n_clusters)
+    fc_state = []
+    fcsc_state = []
+    counts = []
+    labels = []
+    ii= 0
+    for comb in itertools.product(states, repeat=2):
+        labels.append(str(comb[0]) + str(comb[1]))
+        fc_state.append(comb[0])
+        fcsc_state.append(comb[1])
+        # If both of them are okay it should work well enough
+        counts.append(np.sum(np.logical_and(labels_FC == comb[0], labels_FCSC == comb[1])))
+    counts = np.array(counts) / sum(counts)
+    idx_nonzero = counts != 0.0
+    counts = counts[idx_nonzero]
+    fc_states = np.array(fc_state)[idx_nonzero]
+    fcsc_states = np.array(fcsc_state)[idx_nonzero]
+    # New approach, do it by the remaining pairs and plot one bar at a time
+    labels = []
+    for ii, (fc_st, fcsc_st, count) in enumerate(zip(fc_states, fcsc_states, counts)):
+        ax.bar(ii, count/2, color=palette[fc_st], edgecolor='w')
+        ax.bar(ii, count/2, bottom=count/2, color=palette[fcsc_st], edgecolor='w')
+        labels.append(str(fc_st) + ',' + str(fcsc_st))
+    # Da error nse pq
+    ax.set_xticks(np.arange(len(labels)))
+    ax.set_xticklabels(labels)
+    ax.set_xlim(-0.5, len(labels))
+    return ax
 
 
 # Comments on Cleaning the results, managing errors
