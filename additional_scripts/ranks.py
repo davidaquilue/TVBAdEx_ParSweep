@@ -1,3 +1,5 @@
+# How to make use of ranks to parallelize the code using MPI
+
 import numpy as np
 ranks = list(np.arange(0, 12))  # Array with different processes
 
