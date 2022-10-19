@@ -1,6 +1,6 @@
 import time
 import numpy as np
-import tvb_model_reference.src.nuu_tools_simulation_human as tools
+import tvb_model_reference.src.tools_simulation as tools
 
 from analyses import *
 from mpi4py import MPI
@@ -66,10 +66,14 @@ for simnum in range(len(core_proc)):
 
     parameters.parameter_model['external_input_ex_ex'] = Iext
     parameters.parameter_model['external_input_in_ex'] = Iext
-
+    
     label_sim = '_a_' + str(core_proc[simnum][0]) + '_b_' + str(core_proc[simnum][1]) + '_ELI_' + \
                 str(core_proc[simnum][2]) + '_ELE_' + str(core_proc[simnum][3]) + '_T_' + str(core_proc[simnum][4]) + '/'
 
+    # Now change the connectivity to the new connectome
+    parameters.parameter_connection_between_region['path'] = '/p/project/icei-hbp-2022-0005/Codes/tvb_model_reference/data/DH_20120806'
+ 
+    
     file_name = folder_root + label_sim
     parameters.parameter_simulation['path_result'] = file_name
 

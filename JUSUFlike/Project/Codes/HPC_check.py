@@ -15,7 +15,5 @@ parsw_chunk = '../Data/data_chunks/chunk_' + str(n_chunk) + '.npy'
 rem_chunk_folder = '../Data/rem_chunks/'
 batches_folder = '../FinalResults/'
 check_clean_chunk(indicator_folder, results_folder, parsw_chunk, rem_chunk_folder, verbose=True)
-batch_files(results_folder, batches_folder, batch_size=5280, n_cols=56, name_batch=str(n_chunk))
-
-
+batch_files(results_folder, batches_folder, batch_size=5280, n_cols=56, name_batch=str(n_chunk)) 
 
