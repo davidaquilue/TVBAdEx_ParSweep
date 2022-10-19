@@ -7,19 +7,19 @@ This repository is the result of this work, containing multiple studies and scri
 
 ## Folders
 ### additional_scripts
-Contains some scripts that I used from time to time to run some simulations of the TVB-AdEx on a local machine for multiple studies such as understanding how the random seeding worked, obtaining simulations to plot certain the TVB-AdEx behavior for certain parameter combinations, the BOLD signals generated with the model + balloon model, etc.Also, how to use the rank variable from MPI to parallelize code.
+Contains scripts that I used to run simulations of the TVB-AdEx on a local machine for multiple simple studies such as understanding how the random seeding worked, plotting the TVB-AdEx behavior for certain parameter combinations, plotting the BOLD signals generated with the model + balloon model, etc. Also, to learn how to use the rank variable from MPI to parallelize code (read *ParameterSweepTutorial.pdf* for more).
 
 ### data
-Contains different data that is used later on for analyses of the parameter sweep. Mainly, data that is computationally expensive to post-processed, so that there is no need to post-process it again.
+Contains different data that is used later on for analyses of the parameter sweep. Mainly, data that is computationally expensive to post-process, so that there is no need to manipulate it again.
 
 ### figures
 The figures folder has been emptied due to the large amount of figures I had produced. The figures should be reproduced easily by running again the code. If errors of missing folders appear, just by creating them inside the figures folder should be enough.
 
 ### JUSUFlike
-One of the most important folders of the repository. Is structured in a very similar way to how I structured my files on the JUSUF supercomputer. Main folder when following the *ParameterSweepTutorial.pdf*. Additionally, **contains the scripts that are used to analyze the results of the parameter sweeps** (mainly ´processing_results.py´) in the Jupyter Notebook, **as well as the results from the parameter sweep for two connectomes** (in *./JUSUFlike/Project/FinalResults/* and *./JUSUFlike/Project/FinalResultsNew/*).
+One of the most important directories of the repository. It is structured in a very similar way to how I structured my files on the JUSUF supercomputer. It's the main folder when following the *ParameterSweepTutorial.pdf*. Additionally, **contains the scripts that are used to analyze the results of the parameter sweeps** (mainly `processing_results.py`) in the Jupyter Notebook, **as well as the results from the parameter sweep for two connectomes** (in *./JUSUFlike/Project/FinalResults/* and *./JUSUFlike/Project/FinalResultsNew/*).
 
 ### more_connectomes
-The *tvb_model_reference* directory that this folder contains uses a second connectome (the one used to obtain *./JUSUFlike/Project/FinalResultsNew/*) and we can make use of the ´sims_for_plots.py´ inside this folder to simulate the TVB-AdEx model with said connectome.
+The *tvb_model_reference* directory that this folder contains uses a second connectome (the one used to obtain *./JUSUFlike/Project/FinalResultsNew/*) and we can make use of the `sims_for_plots.py` inside this folder to simulate the TVB-AdEx model with said connectome.
 
 ### tvb_model_reference
 Contains the standard library used to run a simulation of the human TVB-AdEx model. 
