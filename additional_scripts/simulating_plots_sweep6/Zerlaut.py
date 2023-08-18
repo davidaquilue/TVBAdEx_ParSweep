@@ -318,10 +318,10 @@ class Zerlaut_adaptation_first_order(Model):
         doc="""coefficient external excitatory input""")
     
     coeff_inhibitory = NArray(
-        label="coeff_external_excitatory",
+        label="coeff_external_inhibitory",
         default=numpy.array([1.3]),
         domain=Range(lo=0.00, hi=100.0, step=0.1), # it's only for some specific function of TVB
-        doc="""coefficient external excitatory input""")
+        doc="""coefficient external inhibitory input""")
 
     # Used for phase-plane axis ranges and to bound random initial() conditions.
     state_variable_range = Final(

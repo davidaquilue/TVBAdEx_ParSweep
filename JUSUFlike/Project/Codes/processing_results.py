@@ -404,7 +404,7 @@ class MplColorHelper:
 
 
 def plot_metric_3d(name_metric, sweep_params, fixed_params, results_folder,
-                   steps=16, fig=None, ax=None, imshow_range=None):
+                   steps=16, fig=None, ax=None, imshow_range=None, params_metric_array=None, transparency_parameter=1):
     """Returns a 3d figure of the values of the name_metric for the parameter space when fixing two values and letting
     the other three explore all their range. In this case, each point in the figure is a colored point.
 
@@ -458,8 +458,8 @@ def plot_metric_3d(name_metric, sweep_params, fixed_params, results_folder,
     for fixed_param in fixed_params:
         desired_value = fixed_params[fixed_param]
         closest_to_desired[fixed_param] = find_closest_val(fixed_param, desired_value, steps)
-
-    params_metric_array = load_metric_sweeps(name_metric, results_folder, steps=steps)
+    if params_metric_array is None:
+        params_metric_array = load_metric_sweeps(name_metric, results_folder, steps=steps)
     for i, fixed_param in enumerate(fixed_params):  # Obtain the indexes of those rows that contain the fixed params.
         fix_par_idx_in_arr = dict_params[fixed_param]
         if i == 0:
@@ -491,7 +491,7 @@ def plot_metric_3d(name_metric, sweep_params, fixed_params, results_folder,
     if type(imshow_range) is type(None):
         imshow_range = (None, None)
     # plot the image and manage the axis
-    img = ax.scatter(x_arr, y_arr, z_arr, c=c_arr, cmap=plt.plasma(), vmin=imshow_range[0], vmax=imshow_range[1])
+    img = ax.scatter(x_arr, y_arr, z_arr, c=c_arr, cmap=plt.plasma(), vmin=imshow_range[0], vmax=imshow_range[1], alpha=transparency_parameter)
     ax.set_xlabel(dict_labels[sweep_params[0]], labelpad=8)
     ax.set_ylabel(dict_labels[sweep_params[1]], labelpad=8)
     ax.set_zlabel(dict_labels[sweep_params[2]], labelpad=8)
