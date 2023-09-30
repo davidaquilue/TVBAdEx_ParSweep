@@ -504,7 +504,7 @@ def plot_metric_3d(name_metric, sweep_params, fixed_params, results_folder,
     return fig
 
 def plot_metric_3d_diagonalELs(name_metric, sweep_params, fixed_params, results_folder,
-                   steps=16, fig=None, ax=None, imshow_range=None, diagonalELs=False):
+                   steps=16, fig=None, ax=None, imshow_range=None, diagonalELs=False, transparency_parameter=1):
     """Returns a 3d figure of the values of the name_metric for the parameter space when fixing two values and letting
     the other three explore all their range. In this case, each point in the figure is a colored point.
 
@@ -596,7 +596,7 @@ def plot_metric_3d_diagonalELs(name_metric, sweep_params, fixed_params, results_
     # plot the image and manage the axis
     dict_labels_diag = {'a': '$S$', 'b_e': '$b_e$ (pA)', 'E_L_i': '$E_{L}$ (mV)', 
                         'E_L_e': '$E_{L}$ (mV)', 'T': '$T$ (ms)'}
-    img = ax.scatter(x_arr, y_arr, z_arr, c=c_arr, cmap=plt.plasma(), vmin=imshow_range[0], vmax=imshow_range[1])
+    img = ax.scatter(x_arr, y_arr, z_arr, c=c_arr, cmap=plt.plasma(), vmin=imshow_range[0], vmax=imshow_range[1], alpha=transparency_parameter)
     ax.set_xlabel(dict_labels_diag[sweep_params[0]], labelpad=8)
     ax.set_ylabel(dict_labels_diag[sweep_params[1]], labelpad=8)
     ax.set_zlabel(dict_labels_diag[sweep_params[2]], labelpad=8)
