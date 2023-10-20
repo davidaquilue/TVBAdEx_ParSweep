@@ -191,7 +191,7 @@ def init(parameter_simulation,parameter_model,parameter_connection_between_regio
     ## Integrator
     if not parameter_integrator['stochastic']:
         if parameter_integrator['type'] == 'Heun':
-            integrator = lab.integrators.HeunDeterministic(dt=np.array(parameter_integrator['dt']))
+            integrator = lab.integrators.HeunDeterministic(dt=parameter_integrator['dt'])
         elif parameter_integrator['type'] == 'Euler':
              integrator = lab.integrators.EulerDeterministic(dt=np.array(parameter_integrator['dt']))
         else:

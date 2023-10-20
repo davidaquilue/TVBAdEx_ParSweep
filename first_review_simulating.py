@@ -100,8 +100,8 @@ if __name__ == '__main__':
     # 1. First we will want to run a single, very long simulation
 
     # Select a directory to store the simulations
-    tests_root = r'C:\Users\daqui\Desktop\temp_data\ParSweep_Paper\
-    TestingUpDownStates'
+    tests_root = (r'C:\Users\daqui\Desktop\temp_data\ParSweep_Paper'
+                  r'\TestingUpDownStates')
     cut_transient = 95000.0
     run_sim = 100000.0
 
